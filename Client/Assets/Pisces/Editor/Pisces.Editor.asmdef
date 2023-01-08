@@ -1,0 +1,16 @@
+{
+    "name": "Pisces.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:659865f48de018b4a86637750e5e14f4"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
