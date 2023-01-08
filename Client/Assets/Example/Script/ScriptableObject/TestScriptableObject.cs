@@ -4,7 +4,6 @@ using UnityEngine;
 using Pisces;
 public class TestScriptableObject : MonoBehaviour
 {
-
     /// <summary>
     /// 框架最外层的绝对路径，示例C:/FrameWork
     /// </summary>

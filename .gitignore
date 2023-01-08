@@ -21,6 +21,7 @@
 
 # Visual Studio cache directory
 .vs/
+.vsconfig
 
 # Visual Studio Code cache directory
 .vscode/
@@ -62,3 +63,5 @@ sysinfo.txt
 crashlytics-build.properties
 
 ProjectVersion.txt
+
+/MyBuild/Wrapper*
