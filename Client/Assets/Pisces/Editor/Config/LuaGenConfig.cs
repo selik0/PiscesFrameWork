@@ -43,6 +43,7 @@ namespace Pisces
                                            && type.BaseType != typeof(MulticastDelegate) && !type.IsInterface && !type.IsEnum
                                    select type);
                 // return unityTypes.Concat(customTypes);
+                customTypes.Append(typeof(Func<string, Dictionary<int, Dictionary<int, string>>, string>));
                 return customTypes;
             }
         }

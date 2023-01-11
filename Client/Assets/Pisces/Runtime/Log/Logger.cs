@@ -1,3 +1,4 @@
+using System.Text;
 /****************
  *@class name:		Logger
  *@description:		自定义日志类
@@ -21,6 +22,31 @@ namespace Pisces
         public static void LogError(string msg)
         {
             Debug.LogError(msg);
+        }
+
+        static string GetMsg(params object[] msg)
+        {
+            if (msg == null || msg.Length <= 0)
+                return "";
+            StringBuilder content = new StringBuilder();
+            foreach (var item in msg)
+            {
+                content.Append(item);
+                content.Append("\t");
+            }
+            return content.ToString();
+        }
+        public static void Log(params string[] msg)
+        {
+            Debug.Log(GetMsg(msg));
+        }
+        public static void LogWarning(params string[] msg)
+        {
+            Debug.LogWarning(GetMsg(msg));
+        }
+        public static void LogError(params string[] msg)
+        {
+            Debug.LogError(GetMsg(msg));
         }
     }
 }
