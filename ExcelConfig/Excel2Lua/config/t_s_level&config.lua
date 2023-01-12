@@ -1,7 +1,7 @@
 --[[
-typeMap表示根据字段生产分类列表, 第一个字段表示一级分类， 第二个字段表示二级分类,以此类推
+groupMap表示根据字段生产分组列表, 第一个字段表示一级分类， 第二个字段表示二级分类,以此类推
 生成的列表示例：
-typeMap = {
+groupMap = {
     [1] = {
         {11} = {11000, 11001},
         {12} = {21000, 21001},
@@ -15,7 +15,7 @@ sort表示排序方法
 check表示检查数据的方式，防止策划配置错误
 
 local t = {
-    typeMap = { "type1", "type2" },
+    groupMap = { "type1", "type2" },
     sort = function(a, b)
         return a.id < b.id
     end,
@@ -28,13 +28,13 @@ local t = {
 return t
 ]]
 local t = {
-    typeMap = { "type1", "type2" },
-    sort = function(a, b)
-        return a.id < b.id
-    end,
-    check = function(tbl)
-        -- todo 检查数据
-    end
+    groupMap = { "testNumber1", "testNumber2", "testNumber3" },
+    -- sort = function(a, b)
+    --     return a.id < b.id
+    -- end,
+    -- check = function(tbl)
+    --     -- todo 检查数据
+    -- end
 }
 
 return t

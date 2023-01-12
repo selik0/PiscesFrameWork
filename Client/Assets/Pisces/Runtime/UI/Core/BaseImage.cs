@@ -13,6 +13,10 @@ namespace UnityEngine.UI
 {
     public class BaseImage : Image
     {
-        
+        public new Sprite sprite
+        {
+            get { return base.sprite; }
+            set { base.sprite = value; }
+        }
     }
 }

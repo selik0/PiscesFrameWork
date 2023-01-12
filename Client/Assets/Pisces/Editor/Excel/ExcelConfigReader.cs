@@ -21,7 +21,7 @@ namespace Pisces
         static public void EditorTest()
         {
             LuaEnv luaEnv = EditorLuaUtility.GetEditorLuaEnv();
-            luaEnv.DoString("require('excel2lua')");
+            luaEnv.DoString("require('debug.HotDebug')");
             // DirectoryInfo directoryInfo = new DirectoryInfo(EditorPathUtility.ExcelConfigFilePath);
             // FileInfo[] fileInfos = directoryInfo.GetFiles();
             // foreach (var fileInfo in fileInfos)

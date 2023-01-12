@@ -1,5 +1,5 @@
 string = require("base.string")
-
+require("base.serialize")
 local Number     = "Number"
 local Bool       = "Bool"
 local String     = "String"
@@ -12,9 +12,277 @@ local ObjectList = "ObjectList"
 local ListList   = "ListList"
 local Dict1      = "Dict1"
 local Dict2      = "Dict2"
-local TRUE       = "TRUE"
+local TRUE       = "1"
 
-function tabletostring(tbl)
+function excel2luaFunction(luaScriptName, dic)
+    -- 第一步获取所有的字段
+    local isGetAllMember, memberMap = firstStep_GetAllMember(dic)
+    if not isGetAllMember then
+        print("List,Dict的子对象的类型对不上转表失败", luaScriptName)
+        return
+    end
+
+    -- 第二步获取excel表的数据
+    local config = {}
+    config.t = secondStep_GetBaseData(dic, memberMap, luaScriptName)
+
+    -- 第三步处理excel配置表对应的lua配置方法
+    thirdStep_DoLuaConfig(config, luaScriptName)
+
+    return fourStep_ToString(config, memberMap, dimensionArr)
+end
+
+-- 第一步获取所有的字段
+function firstStep_GetAllMember(dic)
+    local memberMap = {
+        { idx = 1, name = "id", typeName = "Number" }
+    }
+    -- 第一列默认为id, 获取字段
+    for i = 2, dic[1].Count do
+        table.insert(memberMap, getMember(i, dic[2][i], dic[3][i], dic[4][i], dic[5][i]))
+    end
+    local isSuc = true
+    -- 字段类型不正确直接返回
+    for key, value in pairs(memberMap) do
+        if (string.find(value.typeName, "List") or string.find(value.typeName, "Dict")) and not value.childMembers then
+            isSuc = false
+        end
+    end
+    return isSuc, memberMap
+end
+
+-- 第二步获取excel表的数据
+function secondStep_GetBaseData(dic, memberMap, luaScriptName)
+    -- 先获取原始的文本数据
+    local t = {}
+    for i = 8, dic.Count do
+        local row = {}
+        -- 第一列id不为空才转换数据
+        if not string.IsNullOrEmpty(dic[i][1]) then
+            for _, member in ipairs(memberMap) do
+                local errorMsg = '%s' .. string.format(" 文件名%s,  行%s,  列%s", luaScriptName, i, member.idx)
+                row[member.name] = transitionBaseType(dic[i][member.idx], member, errorMsg)
+            end
+            t[row.id] = row
+        else
+            print("id为空", luaScriptName, i)
+        end
+    end
+    return t
+end
+
+-- 第三步处理excel配置表对应的lua配置方法
+function thirdStep_DoLuaConfig(config, luaScriptName)
+    if not next(config.t) then
+        print("表内没有数据", luaScriptName)
+        return
+    end
+    local script = require(luaScriptName)
+    if script.sort then
+        table.sort(config.t, script.sort)
+    end
+    if not tableIsNotNull(script.groupMap) then
+        return
+    end
+
+    local groupMap = {}
+    local temp = {}
+    for k, name in ipairs(script.groupMap) do
+        temp[k] = {}
+    end
+    for k, v in pairs(config.t) do
+        for k, name in ipairs(script.groupMap) do
+            temp[k][v[name]] = 1
+        end
+    end
+
+    groupMap = createMultipleDimensionsMap(groupMap, groupMap, temp, 0)
+
+    for k, v in pairs(config.t) do
+        local keyList = {}
+        for index, name in ipairs(script.groupMap) do
+            keyList[index] = v[name]
+        end
+        local tempOutMap = getMultipleDimensionsMap(groupMap, keyList)
+        table.insert(tempOutMap, k)
+    end
+    config.groupMap = groupMap
+end
+
+-- 第四步 数据转成string准备写入文件
+function fourStep_ToString(config, memberMap)
+    local content = ""
+    if tableIsNotNull(config.t) then
+        for key, row in pairs(config.t) do
+            local rowContent = ""
+            for index, member in ipairs(memberMap) do
+                rowContent = rowContent .. string.format("%s = %s, ", member.name, tableToString(row[member.name]))
+            end
+            content = content .. string.format("\t[%s] = { %s },\n", key, rowContent)
+        end
+        content = string.format("local t = {\n%s}\n", content)
+    end
+
+    if tableIsNotNull(config.groupMap) then
+        content = content .. "local groupMap = " .. serialize(config.groupMap)
+    end
+
+    return content
+end
+
+-- 检查数据入口
+function checkLuaData()
+    
+end
+
+function getMember(i, memberName, memberTypeName, childMemberNameStr, childMemberTypeStr)
+    if string.IsNullOrEmpty(memberName) or string.IsNullOrEmpty(memberTypeName) then
+        return
+    end
+    local member = { idx = i, name = memberName, typeName = memberTypeName }
+    -- 子类型没数据直接返回
+    if string.IsNullOrEmpty(childMemberTypeStr) then
+        return member
+    end
+    if memberTypeName == List or memberTypeName == ListList or memberTypeName == Dict1 then
+        member.childMembers = { { typeName = childMemberTypeStr } }
+    elseif memberTypeName == ObjectList then
+        local list1 = string.split(childMemberNameStr, "&")
+        local list2 = string.split(childMemberTypeStr, "&")
+        if #list1 == #list2 and #list1 > 0 then
+            member.childMembers = {}
+            for index, str in ipairs(list1) do
+                member.childMembers[index] = { name = str, typeName = list2[index] }
+            end
+        end
+    elseif memberTypeName == Dict2 then
+        local list1 = string.split(childMemberTypeStr, "&")
+        if #list1 == 2 then
+            member.childMembers = { { typeName = list1[1] }, { typeName = list1[2] } }
+        end
+    end
+    return member
+end
+
+function transitionBaseType(originValue, member, errorMsg)
+    local value = originValue
+    if string.IsNullOrEmpty(originValue) then
+        return nil
+    end
+    local typeName = member.typeName
+    if typeName == Number then
+        value = tonumber(originValue)
+    elseif typeName == String then
+        value = string.Format('"{0}"', value)
+    elseif typeName == Bool then
+        value = originValue == "1"
+    elseif typeName == Vector2 then
+        local vec = string.split(originValue, ",")
+        if next(vec) and #vec == 2 then
+            value = string.Format("Vector2({0}, {1})", vec[1], vec[2])
+        else
+            print(string.format(errorMsg, "转换Vector2报错"))
+        end
+    elseif typeName == Vector3 then
+        local vec = string.split(originValue, ",")
+        if next(vec) and #vec == 3 then
+            value = string.Format("Vector3({0}, {1}, {2})", vec[1], vec[2], vec[3])
+        else
+            print(string.format(errorMsg, "转换Vector3报错"))
+        end
+    elseif typeName == Vector4 then
+        local vec = string.split(originValue, ",")
+        if next(vec) and #vec == 4 then
+            value = string.Format("Vector4({0}, {1}, {2}, {3})", vec[1], vec[2], vec[3], vec[4])
+        else
+            print(string.format(errorMsg, "转换Vector4报错"))
+        end
+    elseif typeName == Color then
+        local vec = string.split(originValue, ",")
+        if next(vec) and #vec == 4 then
+            value = string.Format("Color({0}, {1}, {2}, {3})", vec[1], vec[2], vec[3], vec[4])
+        else
+            print(string.format(errorMsg, "转换Color报错"))
+        end
+    elseif typeName == List then
+        local list = string.split(originValue, "|")
+        for index, str in ipairs(list) do
+            list[index] = transitionBaseType(str, member.childMembers[1], errorMsg)
+        end
+        value = list
+    elseif typeName == ListList then
+        local list = string.split(originValue, "|")
+        for index, str in ipairs(list) do
+            list[index] = string.split(str, "&")
+        end
+        for _, mList in ipairs(list) do
+            for index, str in ipairs(mList) do
+                mList[index] = transitionBaseType(str, member.childMembers[1], errorMsg)
+            end
+        end
+        value = list
+    elseif typeName == ObjectList then
+        local list = string.split(originValue, "|")
+        for index, str in ipairs(list) do
+            list[index] = string.split(str, "&")
+        end
+        for idx, mList in ipairs(list) do
+            local tempList = {}
+            for index, str in ipairs(mList) do
+                tempList[member.childMembers[index].name] = transitionBaseType(str, member.childMembers[index], errorMsg)
+            end
+            list[idx] = tempList
+        end
+        value = list
+    elseif typeName == Dict1 then
+        local list = string.split(originValue, "|")
+        value = {}
+        for index, str in ipairs(list) do
+            value[transitionBaseType(str, member.childMembers[1], errorMsg)] = index
+        end
+    elseif typeName == Dict2 then
+        local list = string.split(originValue, "|")
+        for index, str in ipairs(list) do
+            list[index] = string.split(str, "&")
+        end
+        value = {}
+        for index, mList in ipairs(list) do
+            if #mList == 2 then
+                value[transitionBaseType(mList[1], member.childMembers[1], errorMsg)] = transitionBaseType(mList[2],
+                    member.childMembers[2], errorMsg)
+            else
+                print(string.format(errorMsg, "转换Dict报错"))
+            end
+        end
+    else
+        print(string.format(errorMsg, string.format("不支持格式%s %s", member.name, typeName)))
+    end
+    return value
+end
+
+function createMultipleDimensionsMap(reallyOutMap, outMap, dimensionArr, num)
+    if num == #dimensionArr then
+        return outMap
+    end
+    num = num + 1
+    local temp = dimensionArr[num]
+    for k, _ in pairs(temp) do
+        local tempOutMap = {}
+        outMap[k] = tempOutMap
+        createMultipleDimensionsMap(reallyOutMap, tempOutMap, dimensionArr, num)
+    end
+    return reallyOutMap
+end
+
+function getMultipleDimensionsMap(dimensionMap, keyArr)
+    local outMap = dimensionMap
+    for index, value in ipairs(keyArr) do
+        outMap = outMap[value]
+    end
+    return outMap
+end
+
+function tableToString(tbl)
     if not tbl then
         return ""
     end
@@ -22,8 +290,11 @@ function tabletostring(tbl)
     if t == "number" or t == "string" then
         return tbl
     elseif t == "boolean" then
-        return tbl and "true" or "false"
-    elseif t == "table" and tableIsNotNull(tbl) then
+        return tostring(tbl)
+    elseif t == "table" then
+        if not tableIsNotNull(tbl) then
+            return "{}"
+        end
         local isNeedKey = false
         local len = #tbl
         local realyLen = 0
@@ -37,223 +308,39 @@ function tabletostring(tbl)
         local str = "{ "
         for key, value in pairs(tbl) do
             if isNeedKey then
-                local k = tabletostring(key)
+                local k = tableToString(key)
                 if type(k) == "number" then
                     k = "[" .. k .. "]"
                 end
-                str = str .. k .. " = " .. tabletostring(value) .. ", "
+                str = str .. k .. " = " .. tableToString(value) .. ", "
             else
-                str = str .. tabletostring(value) .. ", "
+                str = str .. tableToString(value) .. ", "
             end
         end
-        str = str .. " }"
+        str = str .. "}"
         return str
     else
         return ""
     end
 end
 
-function excel2luaFunction(luaScriptName, dic)
-    local memberMap = {
-        { name = "id", typeName = "Number" }
-    }
-    for i = 2, dic[1].Count do
-        local name = dic[2][i]
-        local typeName = dic[3][i]
-        if not string.IsNullOrEmpty(name) and not string.IsNullOrEmpty(typeName) then
-            memberMap[i] = { name = name, typeName = typeName }
-        end
-        if string.find(typeName, "List") or string.find(typeName, "Dict") then
-            local childMember = dic[4][i]
-            local childTypeName = dic[5][i]
-            if not string.IsNullOrEmpty(childMember) then
-                memberMap[i].childMembers = string.split(childMember, "&")
-            end
-            if not string.IsNullOrEmpty(childTypeName) then
-                memberMap[i].childTypeNames = string.split(childTypeName, "&")
-            end
-        end
+function formatTable(tbl, nowTier, allTier)
+    if type(tbl) ~= "table" then
+        return tableToString(tbl)
     end
-    local content = "local t = {\n"
-    local config = { t = {} }
-    for i = 8, dic.Count do
-        local row = {}
-        -- 第一列默认id
-        local k, v = transitionCell(row, memberMap[1], dic[i][1],
-            string.Format("{0}\t{1}\t{2}\t{3}", "%s", luaScriptName, i, 1))
-        if row.id then
-            content = content .. string.Format("[{0}] = {1} {2} = {3}, ", row.id, "{", k, v)
-            -- 从第二列开始
-            for j = 2, dic[i].Count do
-                k, v = transitionCell(row, memberMap[j], dic[i][j],
-                    string.Format("{0}\t{1}\t{2}\t{3}", "%s", luaScriptName, i, j))
-                content = content .. string.Format("{0} = {1}, ", k, v)
-            end
-            content = content .. " }\n"
-            config.t[row.id] = row
-        else
-            print("没找到id", luaScriptName, i)
-        end
-    end
-    content = content .. "}\n return t"
-    managerData(config, luaScriptName)
-    return content
-end
 
-function managerData(config, luaScriptName)
-    if not next(config.t) then
-        print("表内没有数据", luaScriptName)
-        return
-    end
-    local script = require(luaScriptName)
-    if script.sort then
-        table.sort(config.t, script.sort)
-    end
-    if script.check then
-        script.check(config.t)
-    end
-    if not script.typeMap or not next(script.typeMap) then
-        return
-    end
-    config.typeMap = {}
-    for key, row in pairs(config.t) do
-        local k = row[script.typeMap[1]]
-        if config.typeMap[k] then
-            table.insert(config.typeMap, key)
-        else
-            config.typeMap[k] = { key }
+    local content = ""
+    for key, row in pairs(tbl) do
+        local rowContent = ""
+        for index, member in ipairs(memberMap) do
+            rowContent = rowContent .. string.format("%s = %s, ", member.name, tableToString(row[member.name]))
         end
+        content = content .. string.format("\t[%s] = { %s },\n", key, rowContent)
     end
-    if #script.typeMap >= 2 then
-        local firstTypeList = config.typeMap
-
+    content = string.format("local t = {\n%s}\n", content)
+    for key, value in pairs(tbl) do
+            
     end
-end
-
-function transitionCell(row, member, originValue, errorMsg)
-    if not member then
-        return
-    end
-    local value
-    local name = member.name
-    local typeName = member.typeName
-
-    if typeName == Number or typeName == Bool or typeName == String or typeName == Vector2
-        or typeName == Vector3 or typeName == Vector4 or typeName == Color then
-
-        value = transitionBaseType(originValue, typeName, errorMsg)
-    elseif typeName == List or typeName == Dict1 then
-        local list = string2list(originValue)
-        value = transitionList(list, typeName, member.childMembers, member.childTypeNames, errorMsg)
-    elseif typeName == ListList or typeName == ObjectList or typeName == Dict2 then
-        local list = string2list(originValue, true)
-        value = transitionList(list, typeName, member.childMembers, member.childTypeNames, errorMsg)
-    end
-    row[name] = value
-    return name, tabletostring(value)
-end
-
-function transitionBaseType(originValue, typeName, errorMsg)
-    local value = originValue
-    if string.IsNullOrEmpty(originValue) then
-        return nil
-    end
-    if typeName == Number then
-        value = tonumber(originValue)
-    elseif typeName == String then
-        value = string.Format('"{0}"', value)
-    elseif typeName == Bool then
-        value = originValue == "1"
-    elseif typeName == Vector2 then
-        local vec = string.split(originValue, ",")
-        if next(vec) and #vec == 2 then
-            value = string.Format("Vector2({0}, {1})", vec[1], vec[2])
-        else
-            error(string.format(errorMsg, "转换Vector2报错"))
-        end
-    elseif typeName == Vector3 then
-        local vec = string.split(originValue, ",")
-        if next(vec) and #vec == 3 then
-            value = string.Format("Vector3({0}, {1}, {2})", vec[1], vec[2], vec[3])
-        else
-            error(string.format(errorMsg, "转换Vector3报错"))
-        end
-    elseif typeName == Vector4 then
-        local vec = string.split(originValue, ",")
-        if next(vec) and #vec == 4 then
-            value = string.Format("Vector4({0}, {1}, {2}, {3})", vec[1], vec[2], vec[3], vec[4])
-        else
-            error(string.format(errorMsg, "转换Vector4报错"))
-        end
-    elseif typeName == Color then
-        local vec = string.split(originValue, ",")
-        if next(vec) and #vec == 4 then
-            value = string.Format("Color({0}, {1}, {2}, {3})", vec[1], vec[2], vec[3], vec[4])
-        else
-            error(string.format(errorMsg, "转换Color报错"))
-        end
-    end
-    return value
-end
-
-function string2list(originValue, isListList)
-    local list
-    if string.IsNullOrEmpty(originValue) then
-        return list
-    end
-    list = string.split(originValue, "|")
-    if isListList then
-        for index, value in ipairs(list) do
-            list[index] = string.split(value, "&")
-        end
-    end
-    return list
-end
-
-function transitionList(list, typeName, childMembers, childTypeNames, errorMsg)
-    if not tableIsNotNull(list) then
-        return list
-    end
-    if typeName == List and tableIsNotNull(childTypeNames) and #childTypeNames == 1 then
-        for index, v in ipairs(list) do
-            list[index] = transitionBaseType(v, childTypeNames[index], errorMsg)
-        end
-    elseif typeName == ListList and tableIsNotNull(childTypeNames) and #childTypeNames == 1 then
-        for i, mList in ipairs(list) do
-            for j, v in ipairs(mList) do
-                mList[j] = transitionBaseType(v, childTypeNames[1], errorMsg)
-            end
-        end
-    elseif typeName == ObjectList and tableIsNotNull(childMembers) and tableIsNotNull(childTypeNames) and
-        #childTypeNames == #childMembers then
-        for i, mList in ipairs(list) do
-            if #childMembers ~= #mList then
-                error(string.format(errorMsg, "转换ObjectList报错"))
-                return nil
-            end
-            local map = {}
-            for j, v in ipairs(mList) do
-                print("ObjectList", childMembers[j], childTypeNames[j], v)
-                map[childMembers[j]] = transitionBaseType(v, childTypeNames[j], errorMsg)
-            end
-            list[i] = map
-        end
-    elseif typeName == Dict1 and tableIsNotNull(childTypeNames) and #childTypeNames == 1 then
-        local map = {}
-        for index, v in ipairs(list) do
-            map[transitionBaseType(v, childTypeNames[1], errorMsg)] = index
-        end
-        table.sort(map, function(a, b) return a < b end)
-        list = map
-    elseif typeName == Dict2 and tableIsNotNull(childTypeNames) and #childTypeNames == 2 then
-        for i, mList in ipairs(list) do
-            local map = {}
-            map[transitionBaseType(mList[1], childTypeNames[2], errorMsg)] = transitionBaseType(mList[2],
-                childTypeNames[2], errorMsg)
-            list[i] = map
-        end
-    end
-    return list
 end
 
 function tableIsNotNull(tbl)
