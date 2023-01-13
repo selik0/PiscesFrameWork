@@ -8,7 +8,8 @@ using System.IO;
 *************************************************************************/
 using UnityEditor;
 using UnityEngine;
-namespace Pisces
+using Pisces;
+namespace PiscesEditor
 {
     public class EditorPathUtility
     {
@@ -49,5 +50,7 @@ namespace Pisces
         /// excel导出的lua文件的保存路径
         /// </summary>
         static public string ExcelConfigExportDirectory = Path.Combine(Application.dataPath, "Lua", "table", "base");
+
+        static public string UIPrefabsSavePath = Path.Combine(Application.dataPath, "MyAssets", "UI", "Prefabs");
     }
 }

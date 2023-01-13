@@ -12,17 +12,16 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
-namespace Pisces
+namespace PiscesEditor
 {
     public class EditorAssetUtility
     {
         public static string[] GetAssetPaths<T>(string[] searchInFolders = null) where T : UnityEngine.Object
         {
-            T t = default(T);
             string[] guids = null;
             string[] paths = null;
 
-            string typeName = $"t:{t.GetType().Name}";
+            string typeName = $"t:{typeof(T).Name}";
 
             if (searchInFolders == null)
                 guids = AssetDatabase.FindAssets(typeName);
@@ -71,14 +70,13 @@ namespace Pisces
 
         public static T GetOrCreateScriptableObject<T>(string savePath = "", string[] searchInFolders = null) where T : UnityEngine.ScriptableObject
         {
-            T result = null;
             string[] paths = GetAssetPaths<T>(searchInFolders);
 
             if (paths == null || paths.Length <= 0)
             {
                 if (string.IsNullOrEmpty(savePath)) 
-                    savePath = Path.Combine(Application.dataPath, $"{result.GetType().Name}.asset");
-                result = ScriptableObject.CreateInstance<T>();
+                    savePath = Path.Combine(Application.dataPath, $"{typeof(T).Name}.asset");
+                var result = ScriptableObject.CreateInstance<T>();
                 AssetDatabase.CreateAsset(result, savePath);
                 AssetDatabase.SaveAssets();
                 AssetDatabase.Refresh();
@@ -86,7 +84,7 @@ namespace Pisces
             }
             else
             {
-                result = AssetDatabase.LoadAssetAtPath<T>(paths[0]);
+                var result = AssetDatabase.LoadAssetAtPath<T>(paths[0]);
                 return result;
             }
         }

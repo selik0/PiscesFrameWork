@@ -34,7 +34,7 @@ namespace Pisces
 
             foreach (var item in unityTypes)
             {
-                Logger.Log(item.Namespace +"."+ item.Name);
+                MyLogger.Log(item.Namespace +"."+ item.Name);
             }
         }
     }

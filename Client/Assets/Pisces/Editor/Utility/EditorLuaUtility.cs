@@ -8,9 +8,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using UnityEngine;
 using XLua;
-namespace Pisces
+using Pisces;
+namespace PiscesEditor
 {
     static public class EditorLuaUtility
     {
@@ -25,7 +25,7 @@ namespace Pisces
         {
             if (string.IsNullOrEmpty(fileName))
             {
-                Logger.LogError("excel2lua", "路径为空");
+                MyLogger.LogError("excel2lua", "路径为空");
                 return null;
             }
             fileName = fileName.Replace(".", "/");
@@ -35,7 +35,7 @@ namespace Pisces
                 if (File.Exists(luaFilepath))
                     return File.ReadAllBytes(luaFilepath);
             }
-            Logger.LogError("未找到处理excel2lua的lua文件", fileName);
+            MyLogger.LogError("未找到处理excel2lua的lua文件", fileName);
             return null;
         }
     }

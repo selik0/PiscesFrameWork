@@ -27,7 +27,7 @@ namespace Pisces
                     case RuntimePlatform.OSXEditor:
                         return Path.Combine(Application.dataPath, "..", "files");
                     default:
-                        Logger.LogError("Check The WriteablePath");
+                        MyLogger.LogError("Check The WriteablePath");
                         break;
                 }
                 return Application.persistentDataPath;

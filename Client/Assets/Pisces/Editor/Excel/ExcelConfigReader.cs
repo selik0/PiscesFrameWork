@@ -13,7 +13,8 @@ using OfficeOpenXml;
 using UnityEngine;
 using UnityEditor;
 using XLua;
-namespace Pisces
+using Pisces;
+namespace PiscesEditor
 {
     public class ExcelConfigReader
     {
@@ -48,12 +49,12 @@ namespace Pisces
             Func<string, Dictionary<int, Dictionary<int, string>>, string> excle2luaFunc = luaEnv.Global.Get<Func<string, Dictionary<int, Dictionary<int, string>>, string>>("excel2luaFunction");
             if (excle2luaFunc == null)
             {
-                Logger.LogError("未找到excel2lua的方法");
+                MyLogger.LogError("未找到excel2lua的方法");
                 return;
             }
             if (!Directory.Exists(EditorPathUtility.ExcelConfigFilePath))
             {
-                Logger.LogError("excel文件未找到", EditorPathUtility.ExcelConfigFilePath);
+                MyLogger.LogError("excel文件未找到", EditorPathUtility.ExcelConfigFilePath);
                 return;
             }
 

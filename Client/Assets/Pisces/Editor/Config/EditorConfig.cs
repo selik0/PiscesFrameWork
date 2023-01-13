@@ -8,21 +8,22 @@ using System.IO;
 *************************************************************************/
 using UnityEditor;
 using UnityEngine;
-namespace Pisces
+using Pisces;
+namespace PiscesEditor
 {
     public class EditorConfig : ScriptableObject
     {
         /// <summary>
         /// 图集导出的文件夹位置
         /// </summary>
-        private string m_SpriteAtlasExportDirectory = Path.Combine(Application.dataPath, "/MyBuild/SpriteAtlas");
+        public string m_SpriteAtlasExportDirectory = "Assets/MyBuild/SpriteAtlas";
         /// <summary>
         /// excel配置表的根路径
         /// </summary>
-        private string m_ExcelConfigRoot = Path.Combine(EditorPathUtility.FrameWorkProjectPath, "ExcelConfig");
+        public string m_ExcelConfigRoot = @"H:\PiscesFrameWork\ExcelConfig";
         /// <summary>
         /// excel导出的lua文件的保存路径
         /// </summary>
-        private string m_ExcelExportDirectory = Path.Combine(Application.dataPath, "/Lua/table/base");
+        public string m_ExcelExportDirectory = "Assets/Lua/table/base";
     }
 }

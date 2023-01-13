@@ -10,7 +10,8 @@ using System;
 using XLua;
 using System.Reflection;
 using System.Linq;
-namespace Pisces
+using Pisces;
+namespace PiscesEditor
 {
     public static class LuaGenConfig
     {

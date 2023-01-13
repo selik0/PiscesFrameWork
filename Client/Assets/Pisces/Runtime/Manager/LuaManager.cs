@@ -51,7 +51,7 @@ namespace Pisces
                 catch (System.Exception ex)
                 {
                     string msg = string.Format("xLua exception : {0}\n {1}", ex.Message, ex.StackTrace);
-                    Logger.LogError(msg);
+                    MyLogger.LogError(msg);
                 }
             }
         }

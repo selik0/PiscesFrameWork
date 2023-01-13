@@ -9,7 +9,7 @@ using System.Text;
 using UnityEngine;
 namespace Pisces
 {
-    public class Logger
+    public class MyLogger
     {
         public static void Log(string msg)
         {
