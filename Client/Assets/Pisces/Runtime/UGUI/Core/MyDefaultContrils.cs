@@ -6,9 +6,6 @@
  *@version: 		V1.0.0
 *************************************************************************/
 using System;
-using UnityEngine;
-using System.Collections.Generic;
-using UnityEngine.UI;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif

@@ -1,4 +1,3 @@
-using System.Net.Mime;
 /****************
  *@class name:		BaseImage
  *@description:		继承于UnityEngine.UI.Image, 只做一些基础处理

@@ -12,3 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e5e6d9e57f4dc4d408ca6ab264893d8a, type: 3}
   m_Name: EditorConfig
   m_EditorClassIdentifier: 
+  m_SpriteAtlasExportDirectory: Assets/MyBuild/SpriteAtlas
+  m_ExcelConfigRoot: H:\PiscesFrameWork\ExcelConfig
+  m_ExcelExportDirectory: Assets/Lua/table/base
