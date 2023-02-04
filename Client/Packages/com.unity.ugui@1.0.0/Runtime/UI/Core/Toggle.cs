@@ -2,7 +2,7 @@ using System;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.Serialization;
-
+using System.Collections.Generic;
 namespace UnityEngine.UI
 {
     /// <summary>
@@ -37,17 +37,21 @@ namespace UnityEngine.UI
         /// UnityEvent callback for when a toggle is toggled.
         /// </summary>
         public class ToggleEvent : UnityEvent<bool>
-        {}
+        { }
 
         /// <summary>
         /// Transition mode for the toggle.
         /// </summary>
         public ToggleTransition toggleTransition = ToggleTransition.Fade;
-
-        /// <summary>
-        /// Graphic the toggle should be working with.
-        /// </summary>
         public Graphic graphic;
+        /// <summary>
+        /// toggle的背景graphic列表
+        /// </summary>
+        public List<Graphic> backgroundGraphics = new List<Graphic>();
+        /// <summary>
+        /// toggle的选中graphic列表
+        /// </summary>
+        public List<Graphic> checkmarkGraphics = new List<Graphic>();
 
         [SerializeField]
         private ToggleGroup m_Group;
@@ -109,8 +113,12 @@ namespace UnityEngine.UI
         [SerializeField]
         private bool m_IsOn;
 
+        [Tooltip("是否在isOn==true是隐藏背景的graphics?")]
+        [SerializeField]
+        private bool m_IsHideBackground;
+
         protected Toggle()
-        {}
+        { }
 
 #if UNITY_EDITOR
         protected override void OnValidate()
@@ -132,10 +140,10 @@ namespace UnityEngine.UI
         }
 
         public virtual void LayoutComplete()
-        {}
+        { }
 
         public virtual void GraphicUpdateComplete()
-        {}
+        { }
 
         protected override void OnDestroy()
         {
@@ -161,9 +169,9 @@ namespace UnityEngine.UI
         {
             // Check if isOn has been changed by the animation.
             // Unfortunately there is no way to check if we don�t have a graphic.
-            if (graphic != null)
+            if (checkmarkGraphics.Count >= 0)
             {
-                bool oldValue = !Mathf.Approximately(graphic.canvasRenderer.GetColor().a, 0);
+                bool oldValue = !Mathf.Approximately(checkmarkGraphics[0].canvasRenderer.GetColor().a, 0);
                 if (m_IsOn != oldValue)
                 {
                     m_IsOn = oldValue;
@@ -286,15 +294,43 @@ namespace UnityEngine.UI
         /// </summary>
         private void PlayEffect(bool instant)
         {
-            if (graphic == null)
+            if (checkmarkGraphics.Count <= 0 || (m_IsHideBackground && backgroundGraphics.Count <= 0))
                 return;
 
 #if UNITY_EDITOR
             if (!Application.isPlaying)
-                graphic.canvasRenderer.SetAlpha(m_IsOn ? 1f : 0f);
+            {
+                if (m_IsHideBackground)
+                {
+                    foreach (var item in backgroundGraphics)
+                    {
+                        if (item != null)
+                            item.canvasRenderer.SetAlpha(m_IsOn ? 0f : 1f);
+                    }
+                }
+                foreach (var item in checkmarkGraphics)
+                {
+                    if (item != null)
+                        item.canvasRenderer.SetAlpha(m_IsOn ? 1f : 0f);
+                }
+            }
             else
 #endif
-            graphic.CrossFadeAlpha(m_IsOn ? 1f : 0f, instant ? 0f : 0.1f, true);
+            {
+                if (m_IsHideBackground)
+                {
+                    foreach (var item in backgroundGraphics)
+                    {
+                        if (item != null)
+                            item.CrossFadeAlpha(m_IsOn ? 0f : 1f, instant ? 0f : 0.1f, true);
+                    }
+                }
+                foreach (var item in checkmarkGraphics)
+                {
+                    if (item != null)
+                        item.CrossFadeAlpha(m_IsOn ? 1f : 0f, instant ? 0f : 0.1f, true);
+                }
+            }
         }
 
         /// <summary>
@@ -309,7 +345,8 @@ namespace UnityEngine.UI
         {
             if (!IsActive() || !IsInteractable())
                 return;
-
+            if (isOn && m_Group != null && !m_Group.allowSwitchOff && m_Group.noChangeDontSend)
+                return;
             isOn = !isOn;
         }
 
@@ -327,6 +364,19 @@ namespace UnityEngine.UI
         public virtual void OnSubmit(BaseEventData eventData)
         {
             InternalToggle();
+        }
+
+        protected override void StartColorTween(Color targetColor, bool instant)
+        {
+            if (m_HighlightGraphics == null || m_HighlightGraphics.Length <= 0)
+                return;
+
+            foreach (var graphic in m_HighlightGraphics)
+            {
+                if (graphic == null || (m_IsOn && backgroundGraphics.Contains(graphic)) || (!m_IsOn && checkmarkGraphics.Contains(graphic)))
+                    continue;
+                graphic.CrossFadeColor(targetColor, instant ? 0f : colors.fadeDuration, true, true);
+            }
         }
     }
 }

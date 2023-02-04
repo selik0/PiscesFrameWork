@@ -10,7 +10,7 @@ using UnityEngine.Events;
 using UnityEngine.EventSystems;
 namespace UnityEngine.UI
 {
-    public class LRSlider : MySelectable, IDragHandler, IInitializePotentialDragHandler, ICanvasElement
+    public class SliderLR : Selectable, IDragHandler, IInitializePotentialDragHandler, ICanvasElement
     {
         public enum Direction
         {
@@ -125,7 +125,7 @@ namespace UnityEngine.UI
         // Size of each step.
         float stepSize { get { return wholeNumbers ? 1 : (maxValue - minValue) * 0.1f; } }
 
-        protected LRSlider() { }
+        protected SliderLR() { }
 
 #if UNITY_EDITOR
         protected override void OnValidate()
@@ -450,9 +450,9 @@ namespace UnityEngine.UI
         
         
         
-        public override MySelectable FindSelectableOnLeft()
+        public override Selectable FindSelectableOnLeft()
         {
-            if (navigation.mode == MyNavigation.Mode.Automatic && axis == Axis.Horizontal)
+            if (navigation.mode == Navigation.Mode.Automatic && axis == Axis.Horizontal)
                 return null;
             return base.FindSelectableOnLeft();
         }
@@ -460,9 +460,9 @@ namespace UnityEngine.UI
         
         
         
-        public override MySelectable FindSelectableOnRight()
+        public override Selectable FindSelectableOnRight()
         {
-            if (navigation.mode == MyNavigation.Mode.Automatic && axis == Axis.Horizontal)
+            if (navigation.mode == Navigation.Mode.Automatic && axis == Axis.Horizontal)
                 return null;
             return base.FindSelectableOnRight();
         }
@@ -470,9 +470,9 @@ namespace UnityEngine.UI
         
         
         
-        public override MySelectable FindSelectableOnUp()
+        public override Selectable FindSelectableOnUp()
         {
-            if (navigation.mode == MyNavigation.Mode.Automatic && axis == Axis.Vertical)
+            if (navigation.mode == Navigation.Mode.Automatic && axis == Axis.Vertical)
                 return null;
             return base.FindSelectableOnUp();
         }
@@ -480,9 +480,9 @@ namespace UnityEngine.UI
         
         
         
-        public override MySelectable FindSelectableOnDown()
+        public override Selectable FindSelectableOnDown()
         {
-            if (navigation.mode == MyNavigation.Mode.Automatic && axis == Axis.Vertical)
+            if (navigation.mode == Navigation.Mode.Automatic && axis == Axis.Vertical)
                 return null;
             return base.FindSelectableOnDown();
         }

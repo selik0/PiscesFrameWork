@@ -24,7 +24,7 @@ namespace PiscesEditor
         protected Dictionary<string, List<System.Type>> objectTypeList = new Dictionary<string, List<System.Type>>(){
             {"btn", new List<System.Type>(){ typeof(Button)}},
             {"dropdown", new List<System.Type>(){typeof(Dropdown)}},
-            {"img", new List<System.Type>(){typeof(MyImage)}},
+            {"img", new List<System.Type>(){typeof(Image)}},
             {"input", new List<System.Type>(){typeof(InputField)}},
             {"raw", new List<System.Type>(){typeof(RawImage)}},
             {"tog", new List<System.Type>(){typeof(Toggle)}},

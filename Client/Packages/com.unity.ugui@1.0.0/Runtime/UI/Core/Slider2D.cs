@@ -11,7 +11,7 @@ using UnityEngine.EventSystems;
 
 namespace UnityEngine.UI
 {
-    public class Slider2D : MySelectable, IDragHandler, IInitializePotentialDragHandler, ICanvasElement
+    public class Slider2D : Selectable, IDragHandler, IInitializePotentialDragHandler, ICanvasElement
     {
         [Serializable]
         public class SliderEvent : UnityEvent<Vector2, Vector2> { }

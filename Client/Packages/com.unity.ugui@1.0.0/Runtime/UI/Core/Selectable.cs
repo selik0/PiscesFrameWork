@@ -177,6 +177,10 @@ namespace UnityEngine.UI
         [SerializeField]
         private Graphic m_TargetGraphic;
 
+        [FormerlySerializedAs("highlightGraphics")]
+        [SerializeField]
+        protected Graphic[] m_HighlightGraphics;
+
 
         private bool m_GroupsAllowInteraction = true;
         protected int m_CurrentIndex = -1;
@@ -202,7 +206,7 @@ namespace UnityEngine.UI
         /// }
         /// </code>
         /// </example>
-        public Navigation        navigation        { get { return m_Navigation; } set { if (SetPropertyUtility.SetStruct(ref m_Navigation, value))        OnSetProperty(); } }
+        public Navigation navigation { get { return m_Navigation; } set { if (SetPropertyUtility.SetStruct(ref m_Navigation, value)) OnSetProperty(); } }
 
         /// <summary>
         /// The type of transition that will be applied to the targetGraphic when the state changes.
@@ -225,7 +229,7 @@ namespace UnityEngine.UI
         /// }
         /// </code>
         /// </example>
-        public Transition        transition        { get { return m_Transition; } set { if (SetPropertyUtility.SetStruct(ref m_Transition, value))        OnSetProperty(); } }
+        public Transition transition { get { return m_Transition; } set { if (SetPropertyUtility.SetStruct(ref m_Transition, value)) OnSetProperty(); } }
 
         /// <summary>
         /// The ColorBlock for this selectable object.
@@ -251,7 +255,7 @@ namespace UnityEngine.UI
         /// }
         /// </code>
         /// </example>
-        public ColorBlock        colors            { get { return m_Colors; } set { if (SetPropertyUtility.SetStruct(ref m_Colors, value))            OnSetProperty(); } }
+        public ColorBlock colors { get { return m_Colors; } set { if (SetPropertyUtility.SetStruct(ref m_Colors, value)) OnSetProperty(); } }
 
         /// <summary>
         /// The SpriteState for this selectable object.
@@ -280,7 +284,7 @@ namespace UnityEngine.UI
         // }
         // </code>
         // </example>
-        public SpriteState       spriteState       { get { return m_SpriteState; } set { if (SetPropertyUtility.SetStruct(ref m_SpriteState, value))       OnSetProperty(); } }
+        public SpriteState spriteState { get { return m_SpriteState; } set { if (SetPropertyUtility.SetStruct(ref m_SpriteState, value)) OnSetProperty(); } }
 
         /// <summary>
         /// The AnimationTriggers for this selectable object.
@@ -312,7 +316,7 @@ namespace UnityEngine.UI
         /// }
         /// </code>
         /// </example>
-        public Graphic           targetGraphic     { get { return m_TargetGraphic; } set { if (SetPropertyUtility.SetClass(ref m_TargetGraphic, value))     OnSetProperty(); } }
+        public Graphic targetGraphic { get { return m_TargetGraphic; } set { if (SetPropertyUtility.SetClass(ref m_TargetGraphic, value)) OnSetProperty(); } }
 
         /// <summary>
         /// Is this object interactable.
@@ -341,7 +345,7 @@ namespace UnityEngine.UI
         /// }
         /// </code>
         /// </example>
-        public bool              interactable
+        public bool interactable
         {
             get { return m_Interactable; }
             set
@@ -355,12 +359,12 @@ namespace UnityEngine.UI
             }
         }
 
-        private bool             isPointerInside   { get; set; }
-        private bool             isPointerDown     { get; set; }
-        private bool             hasSelection      { get; set; }
+        private bool isPointerInside { get; set; }
+        private bool isPointerDown { get; set; }
+        private bool hasSelection { get; set; }
 
         protected Selectable()
-        {}
+        { }
 
         /// <summary>
         /// Convenience function that converts the referenced Graphic to a Image, if possible.
@@ -524,7 +528,7 @@ namespace UnityEngine.UI
                 DoStateTransition(currentSelectionState, true);
             else
 #endif
-            DoStateTransition(currentSelectionState, false);
+                DoStateTransition(currentSelectionState, false);
         }
 
         // Remove from the list.
@@ -581,6 +585,26 @@ namespace UnityEngine.UI
             m_TargetGraphic = GetComponent<Graphic>();
         }
 
+        [ContextMenu("Reset HighlightGraphics")]
+        public void ResetGraphics()
+        {
+            List<Graphic> list = new List<Graphic>();
+            GetGraphics(transform, list);
+            m_HighlightGraphics = list.ToArray();
+        }
+
+        protected virtual void GetGraphics(Transform go, List<Graphic> arr)
+        {
+            if (go.GetComponent<Selectable>() != null)
+                return;
+            Graphic graphic = go.GetComponent<Graphic>();
+            if (graphic != null)
+                arr.Add(graphic);
+            for (int i = 0; i < go.childCount; i++)
+            {
+                GetGraphics(go.GetChild(i), arr);
+            }
+        }
 #endif // if UNITY_EDITOR
 
         protected SelectionState currentSelectionState
@@ -1047,12 +1071,16 @@ namespace UnityEngine.UI
             }
         }
 
-        void StartColorTween(Color targetColor, bool instant)
+        protected virtual void StartColorTween(Color targetColor, bool instant)
         {
-            if (m_TargetGraphic == null)
+            if (m_HighlightGraphics == null || m_HighlightGraphics.Length <= 0)
                 return;
 
-            m_TargetGraphic.CrossFadeColor(targetColor, instant ? 0f : m_Colors.fadeDuration, true, true);
+            foreach (var graphic in m_HighlightGraphics)
+            {
+                if (graphic != null)
+                    graphic.CrossFadeColor(targetColor, instant ? 0f : m_Colors.fadeDuration, true, true);
+            }
         }
 
         void DoSpriteSwap(Sprite newSprite)

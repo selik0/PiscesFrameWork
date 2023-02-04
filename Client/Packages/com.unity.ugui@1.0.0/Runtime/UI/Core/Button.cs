@@ -16,7 +16,7 @@ namespace UnityEngine.UI
         /// <summary>
         /// Function definition for a button click event.
         /// </summary>
-        public class ButtonClickedEvent : UnityEvent {}
+        public class ButtonClickedEvent : UnityEvent { }
 
         // Event delegates triggered on click.
         [FormerlySerializedAs("onClick")]
@@ -24,7 +24,7 @@ namespace UnityEngine.UI
         private ButtonClickedEvent m_OnClick = new ButtonClickedEvent();
 
         protected Button()
-        {}
+        { }
 
         /// <summary>
         /// UnityEvent that is triggered when the button is pressed.
@@ -59,9 +59,24 @@ namespace UnityEngine.UI
             set { m_OnClick = value; }
         }
 
+        // 是否开启点击间隔
+        public bool isOpenClickInterval = false;
+        // 点击间隔的时间
+        public float clickIntervalTime = .2f;
+        // 是否可以点击
+        private bool m_IsInClickInterval = false;
+
+        protected override void OnDisable()
+        {
+            // 禁用时停止协程
+            StopAllCoroutines();
+            m_IsInClickInterval = false;
+            base.OnDisable();
+        }
+
         private void Press()
         {
-            if (!IsActive() || !IsInteractable())
+            if (!IsActive() || !IsInteractable() || (isOpenClickInterval && m_IsInClickInterval))
                 return;
 
             UISystemProfilerApi.AddMarker("Button.onClick", this);
@@ -166,6 +181,22 @@ namespace UnityEngine.UI
             }
 
             DoStateTransition(currentSelectionState, false);
+        }
+
+        IEnumerator ClickIntervalCor()
+        {
+            m_IsInClickInterval = true;
+
+            var time = clickIntervalTime;
+            var elapsedTime = 0f;
+
+            while (elapsedTime < time)
+            {
+                elapsedTime += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            m_IsInClickInterval = false;
         }
     }
 }

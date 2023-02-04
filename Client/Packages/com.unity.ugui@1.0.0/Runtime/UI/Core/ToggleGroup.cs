@@ -26,10 +26,14 @@ namespace UnityEngine.UI
         /// </remarks>
         public bool allowSwitchOff { get { return m_AllowSwitchOff; } set { m_AllowSwitchOff = value; } }
 
+        // 当MyToggleGroup的allowSwitchOff == false && m_AllowNoChange == true时点击isOn==true的MyToggle时不发出事件
+        [SerializeField] private bool m_NoChangeDontSend = true;
+        public bool noChangeDontSend { get { return m_NoChangeDontSend; } set { m_NoChangeDontSend = value; } }
+
         protected List<Toggle> m_Toggles = new List<Toggle>();
 
         protected ToggleGroup()
-        {}
+        { }
 
         /// <summary>
         /// Because all the Toggles have registered themselves in the OnEnabled, Start should check to
@@ -50,7 +54,7 @@ namespace UnityEngine.UI
         private void ValidateToggleIsInGroup(Toggle toggle)
         {
             if (toggle == null || !m_Toggles.Contains(toggle))
-                throw new ArgumentException(string.Format("Toggle {0} is not part of ToggleGroup {1}", new object[] {toggle, this}));
+                throw new ArgumentException(string.Format("Toggle {0} is not part of ToggleGroup {1}", new object[] { toggle, this }));
         }
 
         /// <summary>

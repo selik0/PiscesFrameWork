@@ -13,7 +13,7 @@ namespace UnityEngine.UI
     [SelectionBase]
     [ExecuteAlways]
     [DisallowMultipleComponent]
-    [RequireComponent(typeof(MyImage))]
+    [RequireComponent(typeof(Image))]
     [RequireComponent(typeof(RectTransform))]
     public class Scroll : UIBehaviour, IInitializePotentialDragHandler, IBeginDragHandler, IEndDragHandler, IDragHandler, IScrollHandler, ICanvasElement
     {
