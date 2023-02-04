@@ -10,22 +10,22 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using UnityEngine.SceneManagement;
 using UnityEditor.Experimental.SceneManagement;
+using UnityEngine.SceneManagement;
 using UnityEditor;
 namespace PiscesEditor.UI
 {
-    static class MyMenuOptions
+    static internal class MyMenuOptions
     {
         private const string kUILayerName = "UI";
 
-        private const string kStandardSpritePath       = "UI/Skin/UISprite.psd";
-        private const string kBackgroundSpritePath     = "UI/Skin/Background.psd";
+        private const string kStandardSpritePath = "UI/Skin/UISprite.psd";
+        private const string kBackgroundSpritePath = "UI/Skin/Background.psd";
         private const string kInputFieldBackgroundPath = "UI/Skin/InputFieldBackground.psd";
-        private const string kKnobPath                 = "UI/Skin/Knob.psd";
-        private const string kCheckmarkPath            = "UI/Skin/Checkmark.psd";
-        private const string kDropdownArrowPath        = "UI/Skin/DropdownArrow.psd";
-        private const string kMaskPath                 = "UI/Skin/UIMask.psd";
+        private const string kKnobPath = "UI/Skin/Knob.psd";
+        private const string kCheckmarkPath = "UI/Skin/Checkmark.psd";
+        private const string kDropdownArrowPath = "UI/Skin/DropdownArrow.psd";
+        private const string kMaskPath = "UI/Skin/UIMask.psd";
 
         static private MyDefaultControls.Resources s_StandardResources;
 
@@ -198,7 +198,8 @@ namespace PiscesEditor.UI
         [MenuItem("GameObject/UI/Image", false, 2001)]
         static public void AddImage(MenuCommand menuCommand)
         {
-            GameObject go;
+            Debug.Log("123");
+            GameObject go; 
             using (new FactorySwapToEditor())
                 go = MyDefaultControls.CreateImage(GetStandardResources());
 
@@ -218,9 +219,10 @@ namespace PiscesEditor.UI
 
         // Button and toggle are controls you just click on.
 
-        [MenuItem("GameObject/UI/Button", false, 2030)]
+        [MenuItem("GameObject/UI/MyButton %#x", false, 2030)]
         static public void AddButton(MenuCommand menuCommand)
         {
+            Debug.Log("123"); 
             GameObject go;
             using (new FactorySwapToEditor())
                 go = MyDefaultControls.CreateButton(GetStandardResources());

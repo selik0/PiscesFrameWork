@@ -9,8 +9,9 @@ using System.Text;
 using UnityEngine;
 namespace Pisces
 {
-    public class MyLogger
+    public static class MyLogger
     {
+        // internal 
         public static void Log(string msg)
         {
             Debug.Log(msg);

@@ -16,5 +16,15 @@ namespace Pisces
         {
             return null;
         }
+
+        static public void LoadBuildInAsset(string path)
+        {
+
+        }
+
+        static public void LoadRemoteAsset(string path)
+        {
+            
+        }
     }
 }

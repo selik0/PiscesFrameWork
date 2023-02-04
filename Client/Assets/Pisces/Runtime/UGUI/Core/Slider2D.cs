@@ -6,14 +6,12 @@
  *@version: 		V1.0.0
 *************************************************************************/
 using System;
-using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.EventSystems;
-using UnityEngine.UI;
 
-namespace Pisces
+namespace UnityEngine.UI
 {
-    public class Slider2D : Selectable, IDragHandler, IInitializePotentialDragHandler, ICanvasElement
+    public class Slider2D : MySelectable, IDragHandler, IInitializePotentialDragHandler, ICanvasElement
     {
         [Serializable]
         public class SliderEvent : UnityEvent<Vector2, Vector2> { }

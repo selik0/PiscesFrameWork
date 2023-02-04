@@ -1,8 +1,8 @@
 /****************
- *@class name:		SoundManager
- *@description:		音效管理
+ *@class name:		InputManager
+ *@description:		输入控制的管理器
  *@author:			selik0
- *@date:			2023-01-13 15:28:51
+ *@date:			2023-01-28 18:04:52
  *@version: 		V1.0.0
 *************************************************************************/
 using System.Collections;
@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using UnityEngine;
 namespace Pisces
 {
-    public class SoundManager : MonoSingleton<SoundManager>
+    public class InputManager : MonoSingleton<InputManager>
     {
         protected override void Startup()
         {

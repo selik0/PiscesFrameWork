@@ -1,8 +1,8 @@
 /****************
- *@class name:		LRSlider
- *@description:		起点在中间的slider
+ *@class name:		MySlider
+ *@description:		自定义slide，替代ugui的slider
  *@author:			selik0
- *@date:			2022-07-04 08:23:49
+ *@date:			2023-02-01 15:06:03
  *@version: 		V1.0.0
 *************************************************************************/
 using System;
@@ -10,70 +10,65 @@ using UnityEngine.Events;
 using UnityEngine.EventSystems;
 namespace UnityEngine.UI
 {
-    public class LRSlider : MySelectable, IDragHandler, IInitializePotentialDragHandler, ICanvasElement
+    [AddComponentMenu("UI/Slider", 33)]
+    [ExecuteAlways]
+    [RequireComponent(typeof(RectTransform))]
+    public class MySlider : MySelectable, IDragHandler, IInitializePotentialDragHandler, ICanvasElement
     {
         public enum Direction
         {
-            LeftRight,
-            BottomTop,
+            LeftToRight,
+            RightToLeft,
+            BottomToTop,
+            TopToBottom,
         }
+
         [Serializable]
-        public class SliderEvent : UnityEvent<float, float> { }
+        public class SliderEvent : UnityEvent<float> { }
 
         [SerializeField]
         private RectTransform m_FillRect;
-
         public RectTransform fillRect { get { return m_FillRect; } set { if (SetPropertyUtility.SetClass(ref m_FillRect, value)) { UpdateCachedReferences(); UpdateVisuals(); } } }
 
         [SerializeField]
         private RectTransform m_HandleRect;
-
         public RectTransform handleRect { get { return m_HandleRect; } set { if (SetPropertyUtility.SetClass(ref m_HandleRect, value)) { UpdateCachedReferences(); UpdateVisuals(); } } }
 
         [Space]
 
         [SerializeField]
-        private Direction m_Direction = Direction.LeftRight;
-
+        private Direction m_Direction = Direction.LeftToRight;
         public Direction direction { get { return m_Direction; } set { if (SetPropertyUtility.SetStruct(ref m_Direction, value)) UpdateVisuals(); } }
 
         [SerializeField]
         private float m_MinValue = 0;
-
         public float minValue { get { return m_MinValue; } set { if (SetPropertyUtility.SetStruct(ref m_MinValue, value)) { Set(m_Value); UpdateVisuals(); } } }
 
         [SerializeField]
         private float m_MaxValue = 1;
-
         public float maxValue { get { return m_MaxValue; } set { if (SetPropertyUtility.SetStruct(ref m_MaxValue, value)) { Set(m_Value); UpdateVisuals(); } } }
 
         [SerializeField]
         private bool m_WholeNumbers = false;
-
         public bool wholeNumbers { get { return m_WholeNumbers; } set { if (SetPropertyUtility.SetStruct(ref m_WholeNumbers, value)) { Set(m_Value); UpdateVisuals(); } } }
 
         [SerializeField]
         protected float m_Value;
-
         public virtual float value
         {
             get
             {
-                if (wholeNumbers)
-                    return Mathf.Round(m_Value);
-                return m_Value;
+                return wholeNumbers ? Mathf.Round(m_Value) : m_Value;
             }
             set
             {
                 Set(value);
             }
         }
-
         public virtual void SetValueWithoutNotify(float input)
         {
             Set(input, false);
         }
-
         public float normalizedValue
         {
             get
@@ -92,22 +87,10 @@ namespace UnityEngine.UI
 
         [SerializeField]
         private SliderEvent m_OnValueChanged = new SliderEvent();
-
         public SliderEvent onValueChanged { get { return m_OnValueChanged; } set { m_OnValueChanged = value; } }
 
-        [SerializeField]
-        private SliderEvent m_OnPointerDown = new SliderEvent();
-        public SliderEvent onPointerDown { get { return m_OnPointerDown; } set { m_OnPointerDown = value; } }
-
-        [SerializeField]
-        private SliderEvent m_OnPointerUp = new SliderEvent();
-        public SliderEvent onPointerUp { get { return m_OnPointerUp; } set { m_OnPointerUp = value; } }
-
         // Private fields
-        private static Vector2 m_HorAnchorMin = new Vector2(0.5f, 0f);
-        private static Vector2 m_HorAnchorMax = new Vector2(0.5f, 1f);
-        private static Vector2 m_VerAnchorMin = new Vector2(0f, 0.5f);
-        private static Vector2 m_VerAnchorMax = new Vector2(1f, 0.5f);
+
         private Image m_FillImage;
         private Transform m_FillTransform;
         private RectTransform m_FillContainerRect;
@@ -117,7 +100,10 @@ namespace UnityEngine.UI
         // The offset from handle position to mouse down position
         private Vector2 m_Offset = Vector2.zero;
 
+        // field is never assigned warning
+#pragma warning disable 649
         private DrivenRectTransformTracker m_Tracker;
+#pragma warning restore 649
 
         // This "delayed" mechanism is required for case 1037681.
         private bool m_DelayedUpdateVisuals = false;
@@ -125,7 +111,7 @@ namespace UnityEngine.UI
         // Size of each step.
         float stepSize { get { return wholeNumbers ? 1 : (maxValue - minValue) * 0.1f; } }
 
-        protected LRSlider() { }
+        protected MySlider() { }
 
 #if UNITY_EDITOR
         protected override void OnValidate()
@@ -156,19 +142,11 @@ namespace UnityEngine.UI
         {
 #if UNITY_EDITOR
             if (executing == CanvasUpdate.Prelayout)
-                onValueChanged.Invoke(value, normalizedValue);
+                onValueChanged.Invoke(value);
 #endif
         }
-
-        
-        
-        
         public virtual void LayoutComplete()
         { }
-
-        
-        
-        
         public virtual void GraphicUpdateComplete()
         { }
 
@@ -186,11 +164,6 @@ namespace UnityEngine.UI
             m_Tracker.Clear();
             base.OnDisable();
         }
-
-        
-        
-        
-        
         protected virtual void Update()
         {
             if (m_DelayedUpdateVisuals)
@@ -209,20 +182,20 @@ namespace UnityEngine.UI
             float oldNormalizedValue = normalizedValue;
             if (m_FillContainerRect != null)
             {
-                //if (m_FillImage != null && m_FillImage.type == Image.Type.Filled)
-                //    oldNormalizedValue = m_FillImage.fillAmount;
-                //else
-                    oldNormalizedValue = (m_FillRect.anchorMax[(int)axis]);
+                if (m_FillImage != null && m_FillImage.type == Image.Type.Filled)
+                    oldNormalizedValue = m_FillImage.fillAmount;
+                else
+                    oldNormalizedValue = (reverseValue ? 1 - m_FillRect.anchorMin[(int)axis] : m_FillRect.anchorMax[(int)axis]);
             }
             else if (m_HandleContainerRect != null)
-                oldNormalizedValue = (m_HandleRect.anchorMin[(int)axis]);
+                oldNormalizedValue = (reverseValue ? 1 - m_HandleRect.anchorMin[(int)axis] : m_HandleRect.anchorMin[(int)axis]);
 
             UpdateVisuals();
 
             if (oldNormalizedValue != normalizedValue)
             {
                 UISystemProfilerApi.AddMarker("Slider.value", this);
-                onValueChanged.Invoke(m_Value, normalizedValue);
+                onValueChanged.Invoke(m_Value);
             }
         }
 
@@ -262,15 +235,6 @@ namespace UnityEngine.UI
                 newValue = Mathf.Round(newValue);
             return newValue;
         }
-
-        
-        
-        
-        
-        
-        
-        
-        
         protected virtual void Set(float input, bool sendCallback = true)
         {
             // Clamp the input
@@ -285,7 +249,7 @@ namespace UnityEngine.UI
             if (sendCallback)
             {
                 UISystemProfilerApi.AddMarker("Slider.value", this);
-                m_OnValueChanged.Invoke(newValue, normalizedValue);
+                m_OnValueChanged.Invoke(newValue);
             }
         }
 
@@ -306,7 +270,8 @@ namespace UnityEngine.UI
             Vertical = 1
         }
 
-        Axis axis { get { return (m_Direction == Direction.LeftRight) ? Axis.Horizontal : Axis.Vertical; } }
+        Axis axis { get { return (m_Direction == Direction.LeftToRight || m_Direction == Direction.RightToLeft) ? Axis.Horizontal : Axis.Vertical; } }
+        bool reverseValue { get { return m_Direction == Direction.RightToLeft || m_Direction == Direction.TopToBottom; } }
 
         // Force-update the slider. Useful if you've changed the properties and want it to update visually.
         private void UpdateVisuals()
@@ -321,18 +286,20 @@ namespace UnityEngine.UI
             if (m_FillContainerRect != null)
             {
                 m_Tracker.Add(this, m_FillRect, DrivenTransformProperties.Anchors);
-                Vector2 anchorMin = axis == Axis.Horizontal ? m_HorAnchorMin : m_VerAnchorMin;
-                Vector2 anchorMax = axis == Axis.Horizontal ? m_HorAnchorMax : m_VerAnchorMax;
+                Vector2 anchorMin = Vector2.zero;
+                Vector2 anchorMax = Vector2.one;
 
-                //if (m_FillImage != null && m_FillImage.type == Image.Type.Filled)
-                //{
-                //    m_FillImage.fillAmount = normalizedValue;
-                //}
-                //else
-                //{
-                //}
-                anchorMin[(int)axis] = Mathf.Clamp(normalizedValue, 0f, 0.5f);
-                anchorMax[(int)axis] = Mathf.Clamp(normalizedValue, 0.5f, 1f);
+                if (m_FillImage != null && m_FillImage.type == Image.Type.Filled)
+                {
+                    m_FillImage.fillAmount = normalizedValue;
+                }
+                else
+                {
+                    if (reverseValue)
+                        anchorMin[(int)axis] = 1 - normalizedValue;
+                    else
+                        anchorMax[(int)axis] = normalizedValue;
+                }
 
                 m_FillRect.anchorMin = anchorMin;
                 m_FillRect.anchorMax = anchorMax;
@@ -343,7 +310,7 @@ namespace UnityEngine.UI
                 m_Tracker.Add(this, m_HandleRect, DrivenTransformProperties.Anchors);
                 Vector2 anchorMin = Vector2.zero;
                 Vector2 anchorMax = Vector2.one;
-                anchorMin[(int)axis] = anchorMax[(int)axis] = (normalizedValue);
+                anchorMin[(int)axis] = anchorMax[(int)axis] = (reverseValue ? (1 - normalizedValue) : normalizedValue);
                 m_HandleRect.anchorMin = anchorMin;
                 m_HandleRect.anchorMax = anchorMax;
             }
@@ -365,7 +332,7 @@ namespace UnityEngine.UI
                 localCursor -= clickRect.rect.position;
 
                 float val = Mathf.Clamp01((localCursor - m_Offset)[(int)axis] / clickRect.rect.size[(int)axis]);
-                normalizedValue = (val);
+                normalizedValue = (reverseValue ? 1f - val : val);
             }
         }
 
@@ -380,7 +347,7 @@ namespace UnityEngine.UI
                 return;
 
             base.OnPointerDown(eventData);
-            onPointerDown.Invoke(value, normalizedValue);
+
             m_Offset = Vector2.zero;
             if (m_HandleContainerRect != null && RectTransformUtility.RectangleContainsScreenPoint(m_HandleRect, eventData.pointerPressRaycast.screenPosition, eventData.enterEventCamera))
             {
@@ -402,14 +369,6 @@ namespace UnityEngine.UI
             UpdateDrag(eventData, eventData.pressEventCamera);
         }
 
-        public override void OnPointerUp(PointerEventData eventData)
-        {
-            if (!MayDrag(eventData))
-                return;
-            base.OnPointerUp(eventData);
-            onPointerUp.Invoke(value, normalizedValue);
-        }
-
         public override void OnMove(AxisEventData eventData)
         {
             if (!IsActive() || !IsInteractable())
@@ -422,64 +381,48 @@ namespace UnityEngine.UI
             {
                 case MoveDirection.Left:
                     if (axis == Axis.Horizontal && FindSelectableOnLeft() == null)
-                        Set(value - stepSize);
+                        Set(reverseValue ? value + stepSize : value - stepSize);
                     else
                         base.OnMove(eventData);
                     break;
                 case MoveDirection.Right:
                     if (axis == Axis.Horizontal && FindSelectableOnRight() == null)
-                        Set(value + stepSize);
+                        Set(reverseValue ? value - stepSize : value + stepSize);
                     else
                         base.OnMove(eventData);
                     break;
                 case MoveDirection.Up:
                     if (axis == Axis.Vertical && FindSelectableOnUp() == null)
-                        Set(value + stepSize);
+                        Set(reverseValue ? value - stepSize : value + stepSize);
                     else
                         base.OnMove(eventData);
                     break;
                 case MoveDirection.Down:
                     if (axis == Axis.Vertical && FindSelectableOnDown() == null)
-                        Set(value - stepSize);
+                        Set(reverseValue ? value + stepSize : value - stepSize);
                     else
                         base.OnMove(eventData);
                     break;
             }
         }
-
-        
-        
-        
         public override MySelectable FindSelectableOnLeft()
         {
             if (navigation.mode == MyNavigation.Mode.Automatic && axis == Axis.Horizontal)
                 return null;
             return base.FindSelectableOnLeft();
         }
-
-        
-        
-        
         public override MySelectable FindSelectableOnRight()
         {
             if (navigation.mode == MyNavigation.Mode.Automatic && axis == Axis.Horizontal)
                 return null;
             return base.FindSelectableOnRight();
         }
-
-        
-        
-        
         public override MySelectable FindSelectableOnUp()
         {
             if (navigation.mode == MyNavigation.Mode.Automatic && axis == Axis.Vertical)
                 return null;
             return base.FindSelectableOnUp();
         }
-
-        
-        
-        
         public override MySelectable FindSelectableOnDown()
         {
             if (navigation.mode == MyNavigation.Mode.Automatic && axis == Axis.Vertical)
@@ -491,10 +434,10 @@ namespace UnityEngine.UI
         {
             eventData.useDragThreshold = false;
         }
-
         public void SetDirection(Direction direction, bool includeRectLayouts)
         {
             Axis oldAxis = axis;
+            bool oldReverse = reverseValue;
             this.direction = direction;
 
             if (!includeRectLayouts)
@@ -502,6 +445,9 @@ namespace UnityEngine.UI
 
             if (axis != oldAxis)
                 RectTransformUtility.FlipLayoutAxes(transform as RectTransform, true, true);
+
+            if (reverseValue != oldReverse)
+                RectTransformUtility.FlipLayoutOnAxis(transform as RectTransform, (int)axis, true, true);
         }
     }
 }

@@ -14,8 +14,7 @@ namespace Pisces
     public class PanelAtlas
     {
         public string selfAtlasName;
-        public List<string> referenceStaticAtlasNameList;
-        public List<string> referenceDynamicAtlasNameList;
+        public List<string> referencedDynamicAtlasNameList;
 
         private List<SpriteAtlas> m_SpriteAtlasList;
         /// <summary>

@@ -133,9 +133,15 @@ namespace UnityEngine.UI
             // Don't set values which are the same as the default values for the Text component,
             // since there's no point in that, and it's good to keep them as consistent as possible.
             lbl.color = s_TextColor;
+            lbl.raycastTarget = false;
+        }
 
-            // Reset() is not called when playing. We still want the default font to be assigned
-            lbl.AssignDefaultFont();
+        private static void SetDefaultColorTransitionValues(MySelectable slider)
+        {
+            ColorBlock colors = slider.colors;
+            colors.highlightedColor = new Color(0.882f, 0.882f, 0.882f);
+            colors.pressedColor = new Color(0.698f, 0.698f, 0.698f);
+            colors.disabledColor = new Color(0.521f, 0.521f, 0.521f);
         }
 
         private static void SetDefaultColorTransitionValues(Selectable slider)
@@ -179,7 +185,7 @@ namespace UnityEngine.UI
         /// <returns>The root GameObject of the created element.</returns>
         public static GameObject CreatePanel(Resources resources)
         {
-            GameObject panelRoot = CreateUIElementRoot("Panel", s_ThickElementSize, typeof(BaseImage));
+            GameObject panelRoot = CreateUIElementRoot("Panel", s_ThickElementSize, typeof(MyImage));
 
             // Set RectTransform to stretch
             RectTransform rectTransform = panelRoot.GetComponent<RectTransform>();
@@ -188,9 +194,9 @@ namespace UnityEngine.UI
             rectTransform.anchoredPosition = Vector2.zero;
             rectTransform.sizeDelta = Vector2.zero;
 
-            BaseImage image = panelRoot.GetComponent<BaseImage>();
+            MyImage image = panelRoot.GetComponent<MyImage>();
             image.sprite = resources.background;
-            image.type = BaseImage.Type.Sliced;
+            image.type = MyImage.Type.Sliced;
             image.color = s_PanelColor;
 
             return panelRoot;
@@ -209,16 +215,16 @@ namespace UnityEngine.UI
         /// <returns>The root GameObject of the created element.</returns>
         public static GameObject CreateButton(Resources resources)
         {
-            GameObject buttonRoot = CreateUIElementRoot("Button", s_ThickElementSize, typeof(BaseImage), typeof(Button));
+            GameObject buttonRoot = CreateUIElementRoot("Button", s_ThickElementSize, typeof(MyImage), typeof(MyButton));
 
             GameObject childText = CreateUIObject("Text", buttonRoot, typeof(Text));
 
-            BaseImage image = buttonRoot.GetComponent<BaseImage>();
+            MyImage image = buttonRoot.GetComponent<MyImage>();
             image.sprite = resources.standard;
-            image.type = BaseImage.Type.Sliced;
+            image.type = MyImage.Type.Sliced;
             image.color = s_DefaultSelectableColor;
 
-            Button bt = buttonRoot.GetComponent<Button>();
+            MyButton bt = buttonRoot.GetComponent<MyButton>();
             SetDefaultColorTransitionValues(bt);
 
             Text text = childText.GetComponent<Text>();
@@ -267,8 +273,8 @@ namespace UnityEngine.UI
         /// <returns>The root GameObject of the created element.</returns>
         public static GameObject CreateImage(Resources resources)
         {
-            GameObject go = CreateUIElementRoot("Image", s_ImageElementSize, typeof(BaseImage));
-            BaseImage image = go.GetComponent<BaseImage>();
+            GameObject go = CreateUIElementRoot("Image", s_ImageElementSize, typeof(MyImage));
+            MyImage image = go.GetComponent<MyImage>();
             image.raycastTarget = false;
             return go;
         }
@@ -307,18 +313,18 @@ namespace UnityEngine.UI
         public static GameObject CreateSlider(Resources resources)
         {
             // Create GOs Hierarchy
-            GameObject root = CreateUIElementRoot("Slider", s_ThinElementSize, typeof(Slider));
+            GameObject root = CreateUIElementRoot("Slider", s_ThinElementSize, typeof(MySlider));
 
-            GameObject background = CreateUIObject("Background", root, typeof(BaseImage));
+            GameObject background = CreateUIObject("Background", root, typeof(MyImage));
             GameObject fillArea = CreateUIObject("Fill Area", root, typeof(RectTransform));
-            GameObject fill = CreateUIObject("Fill", fillArea, typeof(BaseImage));
+            GameObject fill = CreateUIObject("Fill", fillArea, typeof(MyImage));
             GameObject handleArea = CreateUIObject("Handle Slide Area", root, typeof(RectTransform));
-            GameObject handle = CreateUIObject("Handle", handleArea, typeof(BaseImage));
+            GameObject handle = CreateUIObject("Handle", handleArea, typeof(MyImage));
 
             // Background
-            BaseImage backgroundImage = background.GetComponent<BaseImage>();
+            MyImage backgroundImage = background.GetComponent<MyImage>();
             backgroundImage.sprite = resources.background;
-            backgroundImage.type = BaseImage.Type.Sliced;
+            backgroundImage.type = MyImage.Type.Sliced;
             backgroundImage.color = s_DefaultSelectableColor;
             RectTransform backgroundRect = background.GetComponent<RectTransform>();
             backgroundRect.anchorMin = new Vector2(0, 0.25f);
@@ -333,9 +339,9 @@ namespace UnityEngine.UI
             fillAreaRect.sizeDelta = new Vector2(-20, 0);
 
             // Fill
-            BaseImage fillImage = fill.GetComponent<BaseImage>();
+            MyImage fillImage = fill.GetComponent<MyImage>();
             fillImage.sprite = resources.standard;
-            fillImage.type = BaseImage.Type.Sliced;
+            fillImage.type = MyImage.Type.Sliced;
             fillImage.color = s_DefaultSelectableColor;
 
             RectTransform fillRect = fill.GetComponent<RectTransform>();
@@ -348,7 +354,7 @@ namespace UnityEngine.UI
             handleAreaRect.anchorMax = new Vector2(1, 1);
 
             // Handle
-            BaseImage handleImage = handle.GetComponent<BaseImage>();
+            MyImage handleImage = handle.GetComponent<MyImage>();
             handleImage.sprite = resources.knob;
             handleImage.color = s_DefaultSelectableColor;
 
@@ -356,11 +362,11 @@ namespace UnityEngine.UI
             handleRect.sizeDelta = new Vector2(20, 0);
 
             // Setup slider component
-            Slider slider = root.GetComponent<Slider>();
+            MySlider slider = root.GetComponent<MySlider>();
             slider.fillRect = fill.GetComponent<RectTransform>();
             slider.handleRect = handle.GetComponent<RectTransform>();
             slider.targetGraphic = handleImage;
-            slider.direction = Slider.Direction.LeftToRight;
+            slider.direction = MySlider.Direction.LeftToRight;
             SetDefaultColorTransitionValues(slider);
 
             return root;
@@ -381,19 +387,19 @@ namespace UnityEngine.UI
         public static GameObject CreateScrollbar(Resources resources)
         {
             // Create GOs Hierarchy
-            GameObject scrollbarRoot = CreateUIElementRoot("Scrollbar", s_ThinElementSize, typeof(BaseImage), typeof(Scrollbar));
+            GameObject scrollbarRoot = CreateUIElementRoot("Scrollbar", s_ThinElementSize, typeof(MyImage), typeof(Scrollbar));
 
             GameObject sliderArea = CreateUIObject("Sliding Area", scrollbarRoot, typeof(RectTransform));
-            GameObject handle = CreateUIObject("Handle", sliderArea, typeof(BaseImage));
+            GameObject handle = CreateUIObject("Handle", sliderArea, typeof(MyImage));
 
-            BaseImage bgImage = scrollbarRoot.GetComponent<BaseImage>();
+            MyImage bgImage = scrollbarRoot.GetComponent<MyImage>();
             bgImage.sprite = resources.background;
-            bgImage.type = BaseImage.Type.Sliced;
+            bgImage.type = MyImage.Type.Sliced;
             bgImage.color = s_DefaultSelectableColor;
 
-            BaseImage handleImage = handle.GetComponent<BaseImage>();
+            MyImage handleImage = handle.GetComponent<MyImage>();
             handleImage.sprite = resources.standard;
-            handleImage.type = BaseImage.Type.Sliced;
+            handleImage.type = MyImage.Type.Sliced;
             handleImage.color = s_DefaultSelectableColor;
 
             RectTransform sliderAreaRect = sliderArea.GetComponent<RectTransform>();
@@ -428,29 +434,30 @@ namespace UnityEngine.UI
         public static GameObject CreateToggle(Resources resources)
         {
             // Set up hierarchy
-            GameObject toggleRoot = CreateUIElementRoot("Toggle", s_ThinElementSize, typeof(Toggle));
+            GameObject toggleRoot = CreateUIElementRoot("Toggle", s_ThinElementSize, typeof(MyToggle));
 
-            GameObject background = CreateUIObject("Background", toggleRoot, typeof(BaseImage));
-            GameObject checkmark = CreateUIObject("Checkmark", background, typeof(BaseImage));
+            GameObject background = CreateUIObject("Background", toggleRoot, typeof(MyImage));
+            GameObject checkmark = CreateUIObject("Checkmark", background, typeof(MyImage));
             GameObject childLabel = CreateUIObject("Label", toggleRoot, typeof(Text));
 
             // Set up components
-            Toggle toggle = toggleRoot.GetComponent<Toggle>();
+            MyToggle toggle = toggleRoot.GetComponent<MyToggle>();
             toggle.isOn = true;
 
-            BaseImage bgImage = background.GetComponent<BaseImage>();
+            MyImage bgImage = background.GetComponent<MyImage>();
             bgImage.sprite = resources.standard;
-            bgImage.type = BaseImage.Type.Sliced;
+            bgImage.type = MyImage.Type.Sliced;
             bgImage.color = s_DefaultSelectableColor;
 
-            BaseImage checkmarkImage = checkmark.GetComponent<BaseImage>();
+            MyImage checkmarkImage = checkmark.GetComponent<MyImage>();
             checkmarkImage.sprite = resources.checkmark;
+            checkmarkImage.raycastTarget = false;
 
             Text label = childLabel.GetComponent<Text>();
             label.text = "Toggle";
             SetDefaultTextValues(label);
 
-            toggle.graphic = checkmarkImage;
+            // toggle.graphic = checkmarkImage;
             toggle.targetGraphic = bgImage;
             SetDefaultColorTransitionValues(toggle);
 
@@ -489,14 +496,14 @@ namespace UnityEngine.UI
         /// <returns>The root GameObject of the created element.</returns>
         public static GameObject CreateInputField(Resources resources)
         {
-            GameObject root = CreateUIElementRoot("InputField", s_ThickElementSize, typeof(BaseImage), typeof(InputField));
+            GameObject root = CreateUIElementRoot("InputField", s_ThickElementSize, typeof(MyImage), typeof(InputField));
 
             GameObject childPlaceholder = CreateUIObject("Placeholder", root, typeof(Text));
             GameObject childText = CreateUIObject("Text", root, typeof(Text));
 
-            BaseImage image = root.GetComponent<BaseImage>();
+            MyImage image = root.GetComponent<MyImage>();
             image.sprite = resources.inputField;
-            image.type = BaseImage.Type.Sliced;
+            image.type = MyImage.Type.Sliced;
             image.color = s_DefaultSelectableColor;
 
             InputField inputField = root.GetComponent<InputField>();
@@ -559,16 +566,16 @@ namespace UnityEngine.UI
         /// <returns>The root GameObject of the created element.</returns>
         public static GameObject CreateDropdown(Resources resources)
         {
-            GameObject root = CreateUIElementRoot("Dropdown", s_ThickElementSize, typeof(BaseImage), typeof(Dropdown));
+            GameObject root = CreateUIElementRoot("Dropdown", s_ThickElementSize, typeof(MyImage), typeof(Dropdown));
 
             GameObject label = CreateUIObject("Label", root, typeof(Text));
-            GameObject arrow = CreateUIObject("Arrow", root, typeof(BaseImage));
-            GameObject template = CreateUIObject("Template", root, typeof(BaseImage), typeof(ScrollRect));
-            GameObject viewport = CreateUIObject("Viewport", template, typeof(BaseImage), typeof(Mask));
+            GameObject arrow = CreateUIObject("Arrow", root, typeof(MyImage));
+            GameObject template = CreateUIObject("Template", root, typeof(MyImage), typeof(ScrollRect));
+            GameObject viewport = CreateUIObject("Viewport", template, typeof(MyImage), typeof(Mask));
             GameObject content = CreateUIObject("Content", viewport, typeof(RectTransform));
-            GameObject item = CreateUIObject("Item", content, typeof(Toggle));
-            GameObject itemBackground = CreateUIObject("Item Background", item, typeof(BaseImage));
-            GameObject itemCheckmark = CreateUIObject("Item Checkmark", item, typeof(BaseImage));
+            GameObject item = CreateUIObject("Item", content, typeof(MyToggle));
+            GameObject itemBackground = CreateUIObject("Item Background", item, typeof(MyImage));
+            GameObject itemCheckmark = CreateUIObject("Item Checkmark", item, typeof(MyImage));
             GameObject itemLabel = CreateUIObject("Item Label", item, typeof(Text));
 
             // Sub controls.
@@ -592,22 +599,22 @@ namespace UnityEngine.UI
             SetDefaultTextValues(itemLabelText);
             itemLabelText.alignment = TextAnchor.MiddleLeft;
 
-            BaseImage itemBackgroundImage = itemBackground.GetComponent<BaseImage>();
+            MyImage itemBackgroundImage = itemBackground.GetComponent<MyImage>();
             itemBackgroundImage.color = new Color32(245, 245, 245, 255);
 
-            BaseImage itemCheckmarkImage = itemCheckmark.GetComponent<BaseImage>();
+            MyImage itemCheckmarkImage = itemCheckmark.GetComponent<MyImage>();
             itemCheckmarkImage.sprite = resources.checkmark;
 
-            Toggle itemToggle = item.GetComponent<Toggle>();
+            MyToggle itemToggle = item.GetComponent<MyToggle>();
             itemToggle.targetGraphic = itemBackgroundImage;
-            itemToggle.graphic = itemCheckmarkImage;
+            // itemToggle.graphic = itemCheckmarkImage;
             itemToggle.isOn = true;
 
             // Setup template UI components.
 
-            BaseImage templateImage = template.GetComponent<BaseImage>();
+            MyImage templateImage = template.GetComponent<MyImage>();
             templateImage.sprite = resources.standard;
-            templateImage.type = BaseImage.Type.Sliced;
+            templateImage.type = MyImage.Type.Sliced;
 
             ScrollRect templateScrollRect = template.GetComponent<ScrollRect>();
             templateScrollRect.content = content.GetComponent<RectTransform>();
@@ -621,9 +628,9 @@ namespace UnityEngine.UI
             Mask scrollRectMask = viewport.GetComponent<Mask>();
             scrollRectMask.showMaskGraphic = false;
 
-            BaseImage viewportImage = viewport.GetComponent<BaseImage>();
+            MyImage viewportImage = viewport.GetComponent<MyImage>();
             viewportImage.sprite = resources.mask;
-            viewportImage.type = BaseImage.Type.Sliced;
+            viewportImage.type = MyImage.Type.Sliced;
 
             // Setup dropdown UI components.
 
@@ -631,13 +638,13 @@ namespace UnityEngine.UI
             SetDefaultTextValues(labelText);
             labelText.alignment = TextAnchor.MiddleLeft;
 
-            BaseImage arrowImage = arrow.GetComponent<BaseImage>();
+            MyImage arrowImage = arrow.GetComponent<MyImage>();
             arrowImage.sprite = resources.dropdown;
 
-            BaseImage backgroundImage = root.GetComponent<BaseImage>();
+            MyImage backgroundImage = root.GetComponent<MyImage>();
             backgroundImage.sprite = resources.standard;
             backgroundImage.color = s_DefaultSelectableColor;
-            backgroundImage.type = BaseImage.Type.Sliced;
+            backgroundImage.type = MyImage.Type.Sliced;
 
             Dropdown dropdown = root.GetComponent<Dropdown>();
             dropdown.targetGraphic = backgroundImage;
@@ -734,9 +741,9 @@ namespace UnityEngine.UI
         /// <returns>The root GameObject of the created element.</returns>
         public static GameObject CreateScrollView(Resources resources)
         {
-            GameObject root = CreateUIElementRoot("Scroll View", new Vector2(200, 200), typeof(BaseImage), typeof(ScrollRect));
+            GameObject root = CreateUIElementRoot("Scroll View", new Vector2(200, 200), typeof(MyImage), typeof(ScrollRect));
 
-            GameObject viewport = CreateUIObject("Viewport", root, typeof(BaseImage), typeof(Mask));
+            GameObject viewport = CreateUIObject("Viewport", root, typeof(MyImage), typeof(Mask));
             GameObject content = CreateUIObject("Content", viewport, typeof(RectTransform));
 
             // Sub controls.
@@ -789,17 +796,17 @@ namespace UnityEngine.UI
             scrollRect.horizontalScrollbarSpacing = -3;
             scrollRect.verticalScrollbarSpacing = -3;
 
-            BaseImage rootImage = root.GetComponent<BaseImage>();
+            MyImage rootImage = root.GetComponent<MyImage>();
             rootImage.sprite = resources.background;
-            rootImage.type = BaseImage.Type.Sliced;
+            rootImage.type = MyImage.Type.Sliced;
             rootImage.color = s_PanelColor;
 
             Mask viewportMask = viewport.GetComponent<Mask>();
             viewportMask.showMaskGraphic = false;
 
-            BaseImage viewportImage = viewport.GetComponent<BaseImage>();
+            MyImage viewportImage = viewport.GetComponent<MyImage>();
             viewportImage.sprite = resources.mask;
-            viewportImage.type = BaseImage.Type.Sliced;
+            viewportImage.type = MyImage.Type.Sliced;
 
             return root;
         }
