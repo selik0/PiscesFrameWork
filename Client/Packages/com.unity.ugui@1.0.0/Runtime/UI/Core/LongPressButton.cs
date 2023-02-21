@@ -12,6 +12,9 @@ using UnityEngine.EventSystems;
 using UnityEngine.Serialization;
 namespace UnityEngine.UI
 {
+    [AddComponentMenu("UI/LongPressButton", 30)]
+    [ExecuteAlways]
+    [SelectionBase]
     public class LongPressButton : Button
     {
         [FormerlySerializedAs("onLongPress")]

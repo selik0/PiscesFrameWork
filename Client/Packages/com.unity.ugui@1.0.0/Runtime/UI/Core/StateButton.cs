@@ -1,5 +1,5 @@
 /****************
- *@class name:		StatusButton
+ *@class name:		StateButton
  *@description:		状态按钮
  *@author:			selik0
  *@date:			2023-02-04 10:31:10
@@ -13,18 +13,22 @@ using UnityEngine.EventSystems;
 using UnityEngine.Serialization;
 namespace UnityEngine.UI
 {
-    public class StatusButton : Selectable, IPointerClickHandler, ISubmitHandler
+    [AddComponentMenu("UI/StateButton", 30)]
+    [ExecuteAlways]
+    [SelectionBase]
+    public class StateButton : Selectable, IPointerClickHandler, ISubmitHandler
     {
-        private class StatusData
+        [Serializable]
+        public class StateData
         {
-            public int status;
-            public string statusDesc;
+            public int state;
+            public string stateDesc;
             public List<Graphic> graphics = new List<Graphic>();
 
-            public StatusData(int _status, string _statusDesc)
+            public StateData(int _state, string _stateDesc)
             {
-                status = _status;
-                statusDesc = _statusDesc;
+                state = _state;
+                stateDesc = _stateDesc;
             }
         }
 
@@ -39,13 +43,19 @@ namespace UnityEngine.UI
         [SerializeField]
         private ButtonClickedEvent m_OnClick = new ButtonClickedEvent();
 
-        [FormerlySerializedAs("statusDataList")]
+        [FormerlySerializedAs("stateDataList")]
         [SerializeField]
-        private List<StatusData> m_StatusDataList = new List<StatusData>();
+        private List<StateData> m_StateDataList = new List<StateData>();
 
-        [FormerlySerializedAs("status")]
+        [FormerlySerializedAs("state")]
         [SerializeField]
-        private int m_CurrentStatus;
+        private int m_CurrentState;
+
+        public int currentState
+        {
+            get => m_CurrentState;
+            set => SetState(value);
+        }
 
         // 是否开启点击间隔
         public bool isOpenClickInterval = false;
@@ -54,7 +64,22 @@ namespace UnityEngine.UI
         // 是否可以点击
         private bool m_IsInClickInterval = false;
 
-        private Dictionary<int, StatusData> m_StatusDataDict = new Dictionary<int, StatusData>();
+        private Dictionary<int, StateData> m_StateDataDict = new Dictionary<int, StateData>();
+        private Dictionary<int, StateData> _stateDataDict
+        {
+            get
+            {
+                if (m_StateDataDict.Count <= 0)
+                {
+                    foreach (var stateData in m_StateDataList)
+                    {
+                        if (!m_StateDataDict.ContainsKey(stateData.state))
+                            m_StateDataDict.Add(stateData.state, stateData);
+                    }
+                }
+                return m_StateDataDict;
+            }
+        }
 
         public ButtonClickedEvent onClick
         {
@@ -62,24 +87,22 @@ namespace UnityEngine.UI
             set { m_OnClick = value; }
         }
 
-        protected StatusButton() { }
+        protected StateButton() { }
 
 
         protected override void Awake()
         {
             base.Awake();
-            if (m_StatusDataList.Count <= 0)
-                m_StatusDataList.Add(new StatusData(1, "status1"));
-
-            foreach (var statusData in m_StatusDataList)
+            // 至少要有一个状态
+            if (m_StateDataList.Count <= 0)
             {
-                if (m_StatusDataDict.ContainsKey(statusData.status))
-                    Debug.LogWarning($"状态列表里有重复的状态id={statusData.status}");
-                else
-                    m_StatusDataDict.Add(statusData.status, statusData);
+                m_StateDataList.Add(new StateData(1, "state"));
+                m_StateDataList.Add(new StateData(2, "state"));
             }
 
-            SetStatus(m_StatusDataList[0].status);
+            RefreshStateDataDic();
+
+            SetState(m_StateDataList[0].state);
         }
 
         protected override void OnDisable()
@@ -96,7 +119,7 @@ namespace UnityEngine.UI
                 return;
 
             UISystemProfilerApi.AddMarker("Button.onClick", this);
-            m_OnClick.Invoke(m_CurrentStatus);
+            m_OnClick.Invoke(m_CurrentState);
         }
 
         public virtual void OnPointerClick(PointerEventData eventData)
@@ -150,59 +173,66 @@ namespace UnityEngine.UI
             m_IsInClickInterval = false;
         }
 
-        public void SetStatus(int status)
+        public void SetState(int state)
         {
-            if (!m_StatusDataDict.ContainsKey(status))
+            if (!_stateDataDict.ContainsKey(state))
                 return;
-            m_CurrentStatus = status;
+            m_CurrentState = state;
             PlayEffect();
         }
 
         void PlayEffect()
         {
-            StatusData currentStatusData = null;
-            if (m_StatusDataDict.ContainsKey(m_CurrentStatus))
-                currentStatusData = m_StatusDataDict[m_CurrentStatus];
-
-            if (currentStatusData == null)
+            StateData currentStateData = null;
+            if (!_stateDataDict.TryGetValue(m_CurrentState, out currentStateData))
                 return;
 #if UNITY_EDITOR
             if (!Application.isPlaying)
             {
-                foreach (var statusData in m_StatusDataList)
+                foreach (var stateData in m_StateDataList)
                 {
-                    foreach (var item in statusData.graphics)
+                    foreach (var item in stateData.graphics)
                     {
                         if (item != null)
-                            item.canvasRenderer.SetAlpha(currentStatusData.status == statusData.status ? 0f : 1f);
+                            item.canvasRenderer.SetAlpha(currentStateData.state == stateData.state ? 0f : 1f);
                     }
                 }
             }
             else
 #endif
             {
-                foreach (var statusData in m_StatusDataList)
+                foreach (var stateData in m_StateDataList)
                 {
-                    foreach (var item in statusData.graphics)
+                    foreach (var item in stateData.graphics)
                     {
                         if (item != null)
-                            item.CrossFadeAlpha(currentStatusData.status == statusData.status ? 0f : 1f, 0, true);
+                            item.CrossFadeAlpha(currentStateData.state == stateData.state ? 0f : 1f, 0, true);
                     }
                 }
             }
         }
 
 #if UNITY_EDITOR
+        protected override void Reset()
+        {
+            base.Reset();
+
+            if (m_StateDataList.Count <= 0)
+                m_StateDataList.Add(new StateData(1, "state1"));
+        }
+
         protected override void GetGraphics(Transform go, List<Graphic> arr)
         {
-            if (go.GetComponent<Selectable>() != null)
+            Selectable selectable = go.GetComponent<Selectable>();
+            if (selectable != null && selectable != this)
                 return;
+
             Graphic graphic = go.GetComponent<Graphic>();
 
             bool isContains = false;
-            foreach (var statusData in m_StatusDataList)
+            foreach (var stateData in m_StateDataList)
             {
-                if (statusData.graphics != null && statusData.graphics.Contains(graphic))
+                if (stateData.graphics != null && stateData.graphics.Contains(graphic))
                 {
                     isContains = true;
                     break;
@@ -213,43 +243,55 @@ namespace UnityEngine.UI
                 arr.Add(graphic);
 
             for (int i = 0; i < go.childCount; i++)
-            {
                 GetGraphics(go.GetChild(i), arr);
-            }
         }
 
         protected override void OnValidate()
         {
             base.OnValidate();
 
-            // 至少要有一个状态
-            if (m_StatusDataList.Count <= 0)
-                m_StatusDataList.Add(new StatusData(1, "status"));
-
             // 当前的状态id必须在状态列表里
-            if (!m_StatusDataDict.ContainsKey(m_CurrentStatus))
-                m_CurrentStatus = m_StatusDataList[0].status;
+            m_StateDataDict.Clear();
+            if (!_stateDataDict.ContainsKey(m_CurrentState))
+                m_CurrentState = m_StateDataList[0].state;
         }
+
+        public void ResetStateDataDic()
+        {
+            RefreshStateDataDic();
+        }
+
 #endif // UNITY_EDITOR
+
+        private void RefreshStateDataDic()
+        {
+            foreach (var stateData in m_StateDataList)
+            {
+                if (_stateDataDict.ContainsKey(stateData.state))
+                    Debug.LogWarning($"状态列表里有重复的状态id={stateData.state}");
+                else
+                    _stateDataDict.Add(stateData.state, stateData);
+            }
+        }
 
         protected override void StartColorTween(Color targetColor, bool instant)
         {
-            StatusData currentStatusData = null;
-            if (m_StatusDataDict.ContainsKey(m_CurrentStatus))
-                currentStatusData = m_StatusDataDict[m_CurrentStatus];
+            StateData currentStateData = null;
+            if (!_stateDataDict.TryGetValue(m_CurrentState, out currentStateData))
+                return;
 
-            if (currentStatusData != null && currentStatusData.graphics != null || currentStatusData.graphics.Count > 0)
+            if (currentStateData != null && currentStateData.graphics != null && currentStateData.graphics.Count > 0)
             {
-                foreach (var graphic in currentStatusData.graphics)
+                foreach (var graphic in currentStateData.graphics)
                 {
                     if (graphic != null)
                         graphic.CrossFadeColor(targetColor, instant ? 0f : colors.fadeDuration, true, true);
                 }
             }
 
-            if (m_HighlightGraphics != null || m_HighlightGraphics.Length > 0)
+            if (m_ColorTintGraphics != null && m_ColorTintGraphics.Length > 0)
             {
-                foreach (var graphic in m_HighlightGraphics)
+                foreach (var graphic in m_ColorTintGraphics)
                 {
                     if (graphic != null)
                         graphic.CrossFadeColor(targetColor, instant ? 0f : colors.fadeDuration, true, true);

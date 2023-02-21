@@ -177,9 +177,10 @@ namespace UnityEngine.UI
         [SerializeField]
         private Graphic m_TargetGraphic;
 
-        [FormerlySerializedAs("highlightGraphics")]
+        [ContextMenuItem("Reset ColorTintGraphics", "ResetGraphics")]
+        [FormerlySerializedAs("ColorTineGraphics")]
         [SerializeField]
-        protected Graphic[] m_HighlightGraphics;
+        protected Graphic[] m_ColorTintGraphics = null;
 
 
         private bool m_GroupsAllowInteraction = true;
@@ -408,6 +409,9 @@ namespace UnityEngine.UI
         {
             if (m_TargetGraphic == null)
                 m_TargetGraphic = GetComponent<Graphic>();
+
+            if (m_ColorTintGraphics == null || m_ColorTintGraphics.Length <= 0)
+                ResetGraphics();
         }
 
         private readonly List<CanvasGroup> m_CanvasGroupCache = new List<CanvasGroup>();
@@ -585,25 +589,26 @@ namespace UnityEngine.UI
             m_TargetGraphic = GetComponent<Graphic>();
         }
 
-        [ContextMenu("Reset HighlightGraphics")]
-        public void ResetGraphics()
+        [ContextMenu("Reset ColorTintGraphics")]
+        public virtual void ResetGraphics()
         {
             List<Graphic> list = new List<Graphic>();
             GetGraphics(transform, list);
-            m_HighlightGraphics = list.ToArray();
+            m_ColorTintGraphics = list.ToArray();
         }
 
         protected virtual void GetGraphics(Transform go, List<Graphic> arr)
         {
-            if (go.GetComponent<Selectable>() != null)
+            Selectable selectable = go.GetComponent<Selectable>();
+            if (selectable != null && selectable != this)
                 return;
+
             Graphic graphic = go.GetComponent<Graphic>();
             if (graphic != null)
                 arr.Add(graphic);
+
             for (int i = 0; i < go.childCount; i++)
-            {
                 GetGraphics(go.GetChild(i), arr);
-            }
         }
 #endif // if UNITY_EDITOR
 
@@ -1073,10 +1078,10 @@ namespace UnityEngine.UI
 
         protected virtual void StartColorTween(Color targetColor, bool instant)
         {
-            if (m_HighlightGraphics == null || m_HighlightGraphics.Length <= 0)
+            if (m_ColorTintGraphics == null || m_ColorTintGraphics.Length <= 0)
                 return;
 
-            foreach (var graphic in m_HighlightGraphics)
+            foreach (var graphic in m_ColorTintGraphics)
             {
                 if (graphic != null)
                     graphic.CrossFadeColor(targetColor, instant ? 0f : m_Colors.fadeDuration, true, true);

@@ -77,7 +77,7 @@ namespace UnityEngine.UI
         /// }
         /// </code>
         /// </example>
-        public Texture texture
+        public virtual Texture texture
         {
             get
             {

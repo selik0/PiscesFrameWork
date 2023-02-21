@@ -129,6 +129,32 @@ namespace UnityEngine.UI
                 CanvasUpdateRegistry.RegisterCanvasElementForLayoutRebuild(this);
         }
 
+        public void CollectBackgroundGraphics()
+        {
+            backgroundGraphics.Clear();
+            if (targetGraphic == null) return;
+            GetGraphics(targetGraphic.transform, backgroundGraphics);
+        }
+
+        public void CollectCheckmarkGraphics()
+        {
+            checkmarkGraphics.Clear();
+            if (graphic == null) return;
+            GetGraphics(graphic.transform, checkmarkGraphics);
+        }
+
+        public override void ResetGraphics()
+        {
+            List<Graphic> list = new List<Graphic>();
+            GetGraphics(transform, list);
+            for (int i = list.Count - 1; i >= 0; i--)
+            {
+                if (backgroundGraphics.Contains(list[i]) || checkmarkGraphics.Contains(list[i]))
+                    list.RemoveAt(i);
+            }
+            m_ColorTintGraphics = list.ToArray();
+        }
+
 #endif // if UNITY_EDITOR
 
         public virtual void Rebuild(CanvasUpdate executing)
@@ -368,10 +394,10 @@ namespace UnityEngine.UI
 
         protected override void StartColorTween(Color targetColor, bool instant)
         {
-            if (m_HighlightGraphics == null || m_HighlightGraphics.Length <= 0)
+            if (m_ColorTintGraphics == null || m_ColorTintGraphics.Length <= 0)
                 return;
 
-            foreach (var graphic in m_HighlightGraphics)
+            foreach (var graphic in m_ColorTintGraphics)
             {
                 if (graphic == null || (m_IsOn && backgroundGraphics.Contains(graphic)) || (!m_IsOn && checkmarkGraphics.Contains(graphic)))
                     continue;

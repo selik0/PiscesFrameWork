@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -272,7 +273,7 @@ namespace UnityEngine.UI
         /// </code>
         /// </example>
 
-        public Sprite sprite
+        public virtual Sprite sprite
         {
             get { return m_Sprite; }
             set

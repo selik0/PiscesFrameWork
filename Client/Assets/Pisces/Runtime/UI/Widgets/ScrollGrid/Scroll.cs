@@ -1,5 +1,5 @@
 /****************
- *@class name:		BaseScroll
+ *@class name:		Scroll
  *@description:		自定义的基础scroll，只有滑动功能
  *@author:			selik0
  *@date:			2023-01-15 12:47:30
@@ -10,10 +10,10 @@ using UnityEngine.Events;
 using UnityEngine.EventSystems;
 namespace UnityEngine.UI
 {
+    [AddComponentMenu("UI/Scroll", 37)]
     [SelectionBase]
     [ExecuteAlways]
     [DisallowMultipleComponent]
-    [RequireComponent(typeof(Image))]
     [RequireComponent(typeof(RectTransform))]
     public class Scroll : UIBehaviour, IInitializePotentialDragHandler, IBeginDragHandler, IEndDragHandler, IDragHandler, IScrollHandler, ICanvasElement
     {
@@ -26,58 +26,44 @@ namespace UnityEngine.UI
             Clamped,
         }
 
-        public enum MovementDirection
+        public enum Direction
         {
-            // 无操作
-            None,
-            // 向左或者向上滑动
-            LeftwardsOrUp,
-            // 向右或者向下滑动
-            RightwardsOrDown
+            Horizontal,
+
+            Vertical,
         }
 
         [Serializable]
-        public class ScrollRectEvent : UnityEvent<Vector2> { }
+        public class ScrollRectEvent : UnityEvent<Vector2, Vector2> { }
 
         [SerializeField]
         private Vector2 m_ContentSize;
+        /// <summary>
+        /// 设置滑动的容器大小
+        /// </summary>
+        /// <value></value>
+        public Vector2 contentSize
+        {
+            get { return m_ContentSize; }
+            set
+            {
+                m_ContentSize = Vector2.Max(value, viewRect.rect.size);
+                EnsureLayoutHasRebuilt();
+                UpdateBounds();
+            }
+        }
 
-        public Vector2 contentSize { get { return m_ContentSize; } set { m_ContentSize = value; } }
+        public Direction direction = Direction.Vertical;
 
-        [SerializeField]
-        private MovementDirection m_Horizontal = MovementDirection.LeftwardsOrUp;
+        public MovementType movementType = MovementType.Elastic;
 
-        public MovementDirection horizontal { get { return m_Horizontal; } set { m_Horizontal = value; } }
+        public float elasticity = 0.1f;
 
-        [SerializeField]
-        private MovementDirection m_Vertical = MovementDirection.LeftwardsOrUp;
+        public bool inertia = true;
 
-        public MovementDirection vertical { get { return m_Vertical; } set { m_Vertical = value; } }
+        public float decelerationRate = 0.135f; // Only used when inertia is enabled
 
-        [SerializeField]
-        private MovementType m_MovementType = MovementType.Elastic;
-
-        public MovementType movementType { get { return m_MovementType; } set { m_MovementType = value; } }
-
-        [SerializeField]
-        private float m_Elasticity = 0.1f;
-
-        public float elasticity { get { return m_Elasticity; } set { m_Elasticity = value; } }
-
-        [SerializeField]
-        private bool m_Inertia = true;
-
-        public bool inertia { get { return m_Inertia; } set { m_Inertia = value; } }
-
-        [SerializeField]
-        private float m_DecelerationRate = 0.135f; // Only used when inertia is enabled
-
-        public float decelerationRate { get { return m_DecelerationRate; } set { m_DecelerationRate = value; } }
-
-        [SerializeField]
-        private float m_ScrollSensitivity = 1.0f;
-
-        public float scrollSensitivity { get { return m_ScrollSensitivity; } set { m_ScrollSensitivity = value; } }
+        public float scrollSensitivity = 1.0f;
 
         [SerializeField]
         private RectTransform m_Viewport;
@@ -111,18 +97,17 @@ namespace UnityEngine.UI
         private Bounds m_ViewBounds;
 
         private Vector2 m_Velocity;
-
         public Vector2 velocity { get { return m_Velocity; } set { m_Velocity = value; } }
 
         private bool m_Dragging;
         private bool m_Scrolling;
 
+        private Vector2 m_ScrollPosition = Vector2.zero;
         private Vector2 m_PrevPosition = Vector2.zero;
         private Bounds m_PrevContentBounds;
         private Bounds m_PrevViewBounds;
         [NonSerialized]
         private bool m_HasRebuiltLayout = false;
-
 
         [System.NonSerialized] private RectTransform m_Rect;
         private RectTransform rectTransform
@@ -135,27 +120,15 @@ namespace UnityEngine.UI
             }
         }
 
-        protected Vector2 m_ScrollOffset;
-        public Vector2 ScrollOffset
-        {
-            get { return m_ScrollOffset; }
-            set { m_ScrollOffset = value; }
-        }
-
         // field is never assigned warning
 #pragma warning disable 649
         private DrivenRectTransformTracker m_Tracker;
 #pragma warning restore 649
 
-        protected Scroll()
-        { }
+        protected Scroll() { }
 
         public virtual void Rebuild(CanvasUpdate executing)
         {
-            if (executing == CanvasUpdate.Prelayout)
-            {
-            }
-
             if (executing == CanvasUpdate.PostLayout)
             {
                 UpdateBounds();
@@ -165,11 +138,9 @@ namespace UnityEngine.UI
             }
         }
 
-        public virtual void LayoutComplete()
-        { }
+        public virtual void LayoutComplete() { }
 
-        public virtual void GraphicUpdateComplete()
-        { }
+        public virtual void GraphicUpdateComplete() { }
 
         protected override void OnEnable()
         {
@@ -219,29 +190,26 @@ namespace UnityEngine.UI
             Vector2 delta = data.scrollDelta;
             // Down is positive for scroll events, while in UI system up is positive.
             delta.y *= -1;
-            if (m_Vertical != MovementDirection.None)
+            if (direction == Direction.Vertical)
             {
                 if (Mathf.Abs(delta.x) > Mathf.Abs(delta.y))
                     delta.y = delta.x;
+                delta.x = 0;
             }
-            if (m_Horizontal != MovementDirection.None)
+            if (direction == Direction.Horizontal)
             {
                 if (Mathf.Abs(delta.y) > Mathf.Abs(delta.x))
                     delta.x = delta.y;
-            }
-
-            if (m_Vertical == MovementDirection.None)
-                delta.x = 0;
-            if (m_Horizontal == MovementDirection.None)
                 delta.y = 0;
+            }
 
             if (data.IsScrolling())
                 m_Scrolling = true;
 
-            Vector2 position = (Vector2)m_ContentBounds.center;
-            position += delta * m_ScrollSensitivity;
-            if (m_MovementType == MovementType.Clamped)
-                position += CalculateOffset(position - (Vector2)m_ContentBounds.center);
+            Vector2 position = m_ScrollPosition;
+            position += delta * scrollSensitivity;
+            if (movementType == MovementType.Clamped)
+                position += CalculateOffset(position - m_ScrollPosition);
 
             SetContentAnchoredPosition(position);
             UpdateBounds();
@@ -262,12 +230,11 @@ namespace UnityEngine.UI
 
             if (!IsActive())
                 return;
-
             UpdateBounds();
 
             m_PointerStartLocalCursor = Vector2.zero;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(viewRect, eventData.position, eventData.pressEventCamera, out m_PointerStartLocalCursor);
-            m_ContentStartPosition = (Vector2)m_ContentBounds.center;
+            m_ContentStartPosition = m_ScrollPosition;
             m_Dragging = true;
         }
 
@@ -300,9 +267,9 @@ namespace UnityEngine.UI
             Vector2 position = m_ContentStartPosition + pointerDelta;
 
             // Offset to get content into place in the view.
-            Vector2 offset = CalculateOffset(position - (Vector2)m_ContentBounds.center);
+            Vector2 offset = CalculateOffset(position - m_ScrollPosition);
             position += offset;
-            if (m_MovementType == MovementType.Elastic)
+            if (movementType == MovementType.Elastic)
             {
                 if (offset.x != 0)
                     position.x = position.x - RubberDelta(offset.x, m_ViewBounds.size.x);
@@ -315,14 +282,14 @@ namespace UnityEngine.UI
 
         protected virtual void SetContentAnchoredPosition(Vector2 position)
         {
-            if (m_Horizontal == MovementDirection.None)
-                position.x = m_ContentBounds.center.x;
-            if (m_Vertical == MovementDirection.None)
-                position.y = m_ContentBounds.center.y;
+            if (direction != Direction.Horizontal)
+                position.x = m_ScrollPosition.x;
+            if (direction != Direction.Vertical)
+                position.y = m_ScrollPosition.y;
 
-            if (position != (Vector2)m_ContentBounds.center)
+            if (position != m_ScrollPosition)
             {
-                m_ContentBounds.center = position;
+                m_ScrollPosition = position;
                 UpdateBounds();
             }
         }
@@ -337,54 +304,56 @@ namespace UnityEngine.UI
             {
                 if (!m_Dragging && (offset != Vector2.zero || m_Velocity != Vector2.zero))
                 {
-                    Vector2 position = (Vector2)m_ContentBounds.center;
+                    Vector2 position = m_ScrollPosition;
                     for (int axis = 0; axis < 2; axis++)
                     {
                         // Apply spring physics if movement is elastic and content has an offset from the view.
-                        if (m_MovementType == MovementType.Elastic && offset[axis] != 0)
+                        if (movementType == MovementType.Elastic && offset[axis] != 0)
                         {
                             float speed = m_Velocity[axis];
-                            float smoothTime = m_Elasticity;
+                            float smoothTime = elasticity;
                             if (m_Scrolling)
                                 smoothTime *= 3.0f;
-                            position[axis] = Mathf.SmoothDamp(m_ContentBounds.center[axis], m_ContentBounds.center[axis] + offset[axis], ref speed, smoothTime, Mathf.Infinity, deltaTime);
+                            position[axis] = Mathf.SmoothDamp(m_ScrollPosition[axis], m_ScrollPosition[axis] + offset[axis], ref speed, smoothTime, Mathf.Infinity, deltaTime);
                             if (Mathf.Abs(speed) < 1)
                                 speed = 0;
                             m_Velocity[axis] = speed;
                         }
-                        else if (m_Inertia)
+                        // Else move content according to velocity with deceleration applied.
+                        else if (inertia)
                         {
-                            m_Velocity[axis] *= Mathf.Pow(m_DecelerationRate, deltaTime);
+                            m_Velocity[axis] *= Mathf.Pow(decelerationRate, deltaTime);
                             if (Mathf.Abs(m_Velocity[axis]) < 1)
                                 m_Velocity[axis] = 0;
                             position[axis] += m_Velocity[axis] * deltaTime;
                         }
+                        // If we have neither elaticity or friction, there shouldn't be any velocity.
                         else
                         {
                             m_Velocity[axis] = 0;
                         }
                     }
 
-                    if (m_MovementType == MovementType.Clamped)
+                    if (movementType == MovementType.Clamped)
                     {
-                        offset = CalculateOffset(position - (Vector2)m_ContentBounds.center);
+                        offset = CalculateOffset(position - m_ScrollPosition);
                         position += offset;
                     }
 
                     SetContentAnchoredPosition(position);
                 }
 
-                if (m_Dragging && m_Inertia)
+                if (m_Dragging && inertia)
                 {
-                    Vector3 newVelocity = ((Vector2)m_ContentBounds.center - m_PrevPosition) / deltaTime;
+                    Vector3 newVelocity = (m_ScrollPosition - m_PrevPosition) / deltaTime;
                     m_Velocity = Vector3.Lerp(m_Velocity, newVelocity, deltaTime * 10);
                 }
             }
 
-            if (m_ViewBounds != m_PrevViewBounds || m_ContentBounds != m_PrevContentBounds || (Vector2)m_ContentBounds.center != m_PrevPosition)
+            if (m_ViewBounds != m_PrevViewBounds || m_ContentBounds != m_PrevContentBounds || m_ScrollPosition != m_PrevPosition)
             {
-                UISystemProfilerApi.AddMarker("ScrollRect.value", this);
-                m_OnValueChanged.Invoke(normalizedPosition);
+                UISystemProfilerApi.AddMarker("Scroll.value", this);
+                m_OnValueChanged.Invoke(m_ScrollPosition, normalizedPosition);
                 UpdatePrevData();
             }
             m_Scrolling = false;
@@ -392,9 +361,20 @@ namespace UnityEngine.UI
 
         protected void UpdatePrevData()
         {
-            m_PrevPosition = (Vector2)m_ContentBounds.center;
+            m_PrevPosition = m_ScrollPosition;
             m_PrevViewBounds = m_ViewBounds;
             m_PrevContentBounds = m_ContentBounds;
+        }
+
+        public Vector2 scrollPosition
+        {
+            get => m_ScrollPosition;
+            set
+            {
+                m_ScrollPosition = value;
+                EnsureLayoutHasRebuilt();
+                UpdateBounds();
+            }
         }
 
         public Vector2 normalizedPosition
@@ -414,10 +394,10 @@ namespace UnityEngine.UI
         {
             get
             {
-                UpdateBounds();
-                if ((m_ContentBounds.size.x <= m_ViewBounds.size.x) || Mathf.Approximately(m_ContentBounds.size.x, m_ViewBounds.size.x))
-                    return (m_ViewBounds.min.x > m_ContentBounds.min.x) ? 1 : 0;
-                return (m_ViewBounds.min.x - m_ContentBounds.min.x) / (m_ContentBounds.size.x - m_ViewBounds.size.x);
+                var len = contentSize.x - viewRect.rect.width;
+                if (len <= 0)
+                    return 0;
+                return Mathf.Abs(m_ScrollPosition.x / len);
             }
             set
             {
@@ -430,20 +410,16 @@ namespace UnityEngine.UI
         {
             get
             {
-                UpdateBounds();
-                if ((m_ContentBounds.size.y <= m_ViewBounds.size.y) || Mathf.Approximately(m_ContentBounds.size.y, m_ViewBounds.size.y))
-                    return (m_ViewBounds.min.y > m_ContentBounds.min.y) ? 1 : 0;
-
-                return (m_ViewBounds.min.y - m_ContentBounds.min.y) / (m_ContentBounds.size.y - m_ViewBounds.size.y);
+                var len = contentSize.y - viewRect.rect.height;
+                if (len <= 0)
+                    return 0;
+                return m_ScrollPosition.y / len;
             }
             set
             {
                 SetNormalizedPosition(value, 1);
             }
         }
-
-        private void SetHorizontalNormalizedPosition(float value) { SetNormalizedPosition(value, 0); }
-        private void SetVerticalNormalizedPosition(float value) { SetNormalizedPosition(value, 1); }
 
         protected virtual void SetNormalizedPosition(float value, int axis)
         {
@@ -454,13 +430,13 @@ namespace UnityEngine.UI
             // Where the position of the lower left corner of the content bounds should be, in the space of the view.
             float contentBoundsMinPosition = m_ViewBounds.min[axis] - value * hiddenLength;
             // The new content localPosition, in the space of the view.
-            float newAnchoredPosition = m_ContentBounds.center[axis] + contentBoundsMinPosition - m_ContentBounds.min[axis];
+            float newAnchoredPosition = m_ScrollPosition[axis] + contentBoundsMinPosition - m_ContentBounds.min[axis];
 
-            Vector3 anchoredPosition = m_ContentBounds.center;
+            Vector3 anchoredPosition = m_ScrollPosition;
             if (Mathf.Abs(anchoredPosition[axis] - newAnchoredPosition) > 0.01f)
             {
                 anchoredPosition[axis] = newAnchoredPosition;
-                m_ContentBounds.center = anchoredPosition;
+                m_ScrollPosition = anchoredPosition;
                 m_Velocity[axis] = 0;
                 UpdateBounds();
             }
@@ -476,49 +452,27 @@ namespace UnityEngine.UI
             SetDirty();
         }
 
-        private bool hScrollingNeeded
-        {
-            get
-            {
-                if (Application.isPlaying)
-                    return m_ContentBounds.size.x > m_ViewBounds.size.x + 0.01f;
-                return true;
-            }
-        }
-        private bool vScrollingNeeded
-        {
-            get
-            {
-                if (Application.isPlaying)
-                    return m_ContentBounds.size.y > m_ViewBounds.size.y + 0.01f;
-                return true;
-            }
-        }
-
         protected void UpdateBounds()
         {
             m_ViewBounds = new Bounds(viewRect.rect.center, viewRect.rect.size);
-            if (m_ContentSize.x < m_ViewBounds.size.x || m_Vertical == MovementDirection.None)
-                m_ContentSize.x = m_ViewBounds.size.x;
+            m_ContentBounds = GetBounds();
+        }
 
-            if (m_ContentSize.y < m_ViewBounds.size.y || m_Horizontal == MovementDirection.None)
-                m_ContentSize.y = m_ViewBounds.size.y;
-
-
-            Vector2 center = (contentSize - (Vector2)m_ViewBounds.size) / 2 + m_ScrollOffset;
-            m_ContentBounds = new Bounds(m_ViewBounds.center, contentSize);
-
-
+        private Bounds GetBounds()
+        {
+            Vector2 center = viewRect.rect.center - ((contentSize - viewRect.rect.size) / 2);
+            if (direction != Direction.Vertical)
+                center.x *= -1;
+            center += m_ScrollPosition;
+            return new Bounds(center, contentSize);
         }
 
         private Vector2 CalculateOffset(Vector2 delta)
         {
-            bool isHorizontal = m_Horizontal != MovementDirection.None;
-            bool isVertical = m_Vertical != MovementDirection.None;
-            return InternalCalculateOffset(ref m_ViewBounds, ref m_ContentBounds, isHorizontal, isVertical, m_MovementType, ref delta);
+            return InternalCalculateOffset(ref m_ViewBounds, ref m_ContentBounds, direction, movementType, ref delta);
         }
 
-        internal static Vector2 InternalCalculateOffset(ref Bounds viewBounds, ref Bounds contentBounds, bool horizontal, bool vertical, MovementType movementType, ref Vector2 delta)
+        internal static Vector2 InternalCalculateOffset(ref Bounds viewBounds, ref Bounds contentBounds, Direction dir, MovementType movementType, ref Vector2 delta)
         {
             Vector2 offset = Vector2.zero;
             if (movementType == MovementType.Unrestricted)
@@ -529,7 +483,7 @@ namespace UnityEngine.UI
 
             // min/max offset extracted to check if approximately 0 and avoid recalculating layout every frame (case 1010178)
 
-            if (horizontal)
+            if (dir != Direction.Vertical)
             {
                 min.x += delta.x;
                 max.x += delta.x;
@@ -543,7 +497,7 @@ namespace UnityEngine.UI
                     offset.x = maxOffset;
             }
 
-            if (vertical)
+            if (dir != Direction.Horizontal)
             {
                 min.y += delta.y;
                 max.y += delta.y;

@@ -22,12 +22,15 @@ namespace UnityEditor.UI
         SerializedProperty m_SpriteStateProperty;
         SerializedProperty m_AnimTriggerProperty;
         SerializedProperty m_NavigationProperty;
+        SerializedProperty m_ColorTintGraphicsProperty;
+
+        UnityEditorInternal.ReorderableList m_ColorTintGraphicsList;
 
         GUIContent m_VisualizeNavigation = EditorGUIUtility.TrTextContent("Visualize", "Show navigation flows between selectable UI elements.");
 
-        AnimBool m_ShowColorTint       = new AnimBool();
+        AnimBool m_ShowColorTint = new AnimBool();
         AnimBool m_ShowSpriteTrasition = new AnimBool();
-        AnimBool m_ShowAnimTransition  = new AnimBool();
+        AnimBool m_ShowAnimTransition = new AnimBool();
 
         private static List<SelectableEditor> s_Editors = new List<SelectableEditor>();
         private static bool s_ShowNavigation = false;
@@ -39,14 +42,32 @@ namespace UnityEditor.UI
 
         protected virtual void OnEnable()
         {
-            m_Script                = serializedObject.FindProperty("m_Script");
-            m_InteractableProperty  = serializedObject.FindProperty("m_Interactable");
+            m_Script = serializedObject.FindProperty("m_Script");
+            m_InteractableProperty = serializedObject.FindProperty("m_Interactable");
             m_TargetGraphicProperty = serializedObject.FindProperty("m_TargetGraphic");
-            m_TransitionProperty    = serializedObject.FindProperty("m_Transition");
-            m_ColorBlockProperty    = serializedObject.FindProperty("m_Colors");
-            m_SpriteStateProperty   = serializedObject.FindProperty("m_SpriteState");
-            m_AnimTriggerProperty   = serializedObject.FindProperty("m_AnimationTriggers");
-            m_NavigationProperty    = serializedObject.FindProperty("m_Navigation");
+            m_TransitionProperty = serializedObject.FindProperty("m_Transition");
+            m_ColorBlockProperty = serializedObject.FindProperty("m_Colors");
+            m_SpriteStateProperty = serializedObject.FindProperty("m_SpriteState");
+            m_AnimTriggerProperty = serializedObject.FindProperty("m_AnimationTriggers");
+            m_NavigationProperty = serializedObject.FindProperty("m_Navigation");
+            m_ColorTintGraphicsProperty = serializedObject.FindProperty("m_ColorTintGraphics");
+
+            m_ColorTintGraphicsList = new UnityEditorInternal.ReorderableList(serializedObject, m_ColorTintGraphicsProperty);
+            m_ColorTintGraphicsList.drawHeaderCallback = rect =>
+            {
+                EditorGUI.LabelField(rect, "ColorTintGraphics");
+                if (GUI.Button(new Rect(rect.x + 120, rect.y, 100, rect.height), new GUIContent("Reset")))
+                {
+                    Selectable selectable = serializedObject.targetObject as Selectable;
+                    selectable.ResetGraphics();
+                    EditorUtility.SetDirty(selectable);
+                }
+            };
+            m_ColorTintGraphicsList.drawElementCallback = (Rect rect, int index, bool select, bool focused) =>
+            {
+                SerializedProperty element = m_ColorTintGraphicsList.serializedProperty.GetArrayElementAtIndex(index);
+                EditorGUI.PropertyField(rect, element);
+            };
 
             m_PropertyPathToExcludeForChildClasses = new[]
             {
@@ -58,12 +79,13 @@ namespace UnityEditor.UI
                 m_AnimTriggerProperty.propertyPath,
                 m_InteractableProperty.propertyPath,
                 m_TargetGraphicProperty.propertyPath,
+                m_ColorTintGraphicsProperty.propertyPath,
             };
 
             var trans = GetTransition(m_TransitionProperty);
-            m_ShowColorTint.value       = (trans == Selectable.Transition.ColorTint);
+            m_ShowColorTint.value = (trans == Selectable.Transition.ColorTint);
             m_ShowSpriteTrasition.value = (trans == Selectable.Transition.SpriteSwap);
-            m_ShowAnimTransition.value  = (trans == Selectable.Transition.Animation);
+            m_ShowAnimTransition.value = (trans == Selectable.Transition.Animation);
 
             m_ShowColorTint.valueChanged.AddListener(Repaint);
             m_ShowSpriteTrasition.valueChanged.AddListener(Repaint);
@@ -184,6 +206,8 @@ namespace UnityEditor.UI
                 EditorPrefs.SetBool(s_ShowNavigationKey, s_ShowNavigation);
                 SceneView.RepaintAll();
             }
+
+            m_ColorTintGraphicsList.DoLayoutList();
 
             // We do this here to avoid requiring the user to also write a Editor for their Selectable-derived classes.
             // This way if we are on a derived class we dont draw anything else, otherwise draw the remaining properties.
