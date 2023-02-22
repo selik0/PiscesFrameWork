@@ -69,7 +69,6 @@ namespace UnityEditor.UI
                 {
                     if (list.serializedProperty != null)
                     {
-                        Debug.Log("123");
                         list.serializedProperty.arraySize++;
                         list.index = list.serializedProperty.arraySize - 1;
                         var newItem = list.serializedProperty.GetArrayElementAtIndex(list.index);

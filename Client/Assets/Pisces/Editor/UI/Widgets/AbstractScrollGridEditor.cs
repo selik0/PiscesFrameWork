@@ -18,9 +18,9 @@ namespace UnityEditor.UI
     {
         SerializedProperty m_HeadPaddingProperty;
         SerializedProperty m_TailPaddingProperty;
-        SerializedProperty m_GroupElementCountProperty;
         SerializedProperty m_ElementSpacingProperty;
         SerializedProperty m_ElementChangeProperty;
+        SerializedProperty m_GroupElementCountProperty;
         protected SerializedProperty m_ElementPrefabsProperty;
         protected SerializedProperty m_ElementSizesProperty;
         ReorderableList m_ElementPrefabsList;
@@ -34,12 +34,15 @@ namespace UnityEditor.UI
             m_ElementPrefabsProperty = serializedObject.FindProperty("m_ElementPrefabs");
             m_ElementSizesProperty = serializedObject.FindProperty("elementSizes");
             m_ElementChangeProperty = serializedObject.FindProperty("m_OnElementChange");
+
+            InitializeElementPrefabList();
+            InitializeElementSizeList();
         }
 
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
-            EditorGUILayout.PropertyField(m_GroupElementCountProperty);
+            DrawGroupElementCount();
             EditorGUILayout.PropertyField(m_HeadPaddingProperty);
             EditorGUILayout.PropertyField(m_TailPaddingProperty);
             EditorGUILayout.PropertyField(m_ElementSpacingProperty);
@@ -50,35 +53,65 @@ namespace UnityEditor.UI
             serializedObject.ApplyModifiedProperties();
         }
 
+        void InitializeElementPrefabList()
+        {
+            m_ElementPrefabsList = new ReorderableList(serializedObject, m_ElementPrefabsProperty, false, true, true, true)
+            {
+                drawHeaderCallback = (Rect rect) => { EditorGUI.LabelField(rect, "ElementPrefabs"); },
+                drawElementCallback = (Rect rect, int index, bool select, bool focused) =>
+                {
+                    SerializedProperty element = m_ElementPrefabsProperty.GetArrayElementAtIndex(index);
+                    EditorGUI.PropertyField(rect, element);
+                },
+                onAddCallback = (ReorderableList list) =>
+                {
+                    ReorderableList.defaultBehaviours.DoAddButton(m_ElementSizesList);
+                    ReorderableList.defaultBehaviours.DoAddButton(list);
+                },
+                onRemoveCallback = (ReorderableList list) =>
+                {
+                    m_ElementSizesList.index = m_ElementPrefabsList.index;
+                    ReorderableList.defaultBehaviours.DoRemoveButton(m_ElementSizesList);
+                    ReorderableList.defaultBehaviours.DoRemoveButton(list);
+                }
+            };
+        }
+
+        void InitializeElementSizeList()
+        {
+            m_ElementSizesList = new ReorderableList(serializedObject, m_ElementSizesProperty, false, true, false, false)
+            {
+                drawHeaderCallback = (Rect rect) => { EditorGUI.LabelField(rect, "ElementSizes"); },
+                drawElementCallback = (Rect rect, int index, bool select, bool focused) =>
+                {
+                    SerializedProperty element = m_ElementSizesProperty.GetArrayElementAtIndex(index);
+                    EditorGUI.PropertyField(rect, element);
+                },
+            };
+        }
+
+        public virtual void DrawGroupElementCount()
+        {
+            EditorGUILayout.PropertyField(m_GroupElementCountProperty);
+        }
+
         public virtual void DrawElementPrefabs()
         {
-            EditorGUI.BeginChangeCheck();
-            EditorGUILayout.PropertyField(m_ElementPrefabsProperty);
-            if (EditorGUI.EndChangeCheck())
-                m_ElementSizesProperty.arraySize = m_ElementPrefabsProperty.arraySize;
-
-            // m_ElementPrefabsList = new ReorderableList(serializedObject, m_ElementPrefabsProperty, true, false, true, true)
-            // {
-            //     drawElementCallback = (Rect rect, int index, bool select, bool focused) =>
-            //     {
-            //         SerializedProperty element = m_ElementPrefabsList.serializedProperty.GetArrayElementAtIndex(index);
-            //         EditorGUI.BeginChangeCheck();
-            //         EditorGUILayout.PropertyField(element);
-            //         if (EditorGUI.EndChangeCheck())
-            //         {
-
-            //         }
-
-            //     }
-            // };
+            EditorGUILayout.Space(15);
+            for (int i = 0; i < m_ElementPrefabsProperty.arraySize; i++)
+            {
+                if (m_ElementPrefabsProperty.GetArrayElementAtIndex(i).objectReferenceValue == null)
+                {
+                    EditorGUILayout.HelpBox("ElementPrefab 不能为空.", MessageType.Warning);
+                    break;
+                }
+            }
+            m_ElementPrefabsList.DoLayoutList();
         }
 
         public virtual void DrawElementSizes()
         {
-            EditorGUI.BeginChangeCheck();
-            EditorGUILayout.PropertyField(m_ElementSizesProperty);
-            if (EditorGUI.EndChangeCheck())
-                m_ElementPrefabsProperty.arraySize = m_ElementSizesProperty.arraySize;
+            m_ElementSizesList.DoLayoutList();
         }
 
         public void DrawOnElementChagne()

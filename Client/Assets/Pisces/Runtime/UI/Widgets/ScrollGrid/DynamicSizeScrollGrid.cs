@@ -7,29 +7,26 @@
 *************************************************************************/
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
+using UnityEngine.Events;
 namespace UnityEngine.UI
 {
     public class DynamicSizeScrollGrid : AbstractScrollGrid
     {
-        protected override ScrollGridCell CreateCell(int index)
-        {
-            throw new System.NotImplementedException();
-        }
+        public class ScrollGridFuncIntEvent : UnityFuncEvent<int, int> { }
+        public class ScrollGridFuncVector2Event : UnityFuncEvent<int, Vector2> { }
 
-        protected override Vector2 GetCellSizeByIndex(int index)
+        public ScrollGridFuncIntEvent onElementGoIndex = new ScrollGridFuncIntEvent();
+        public ScrollGridFuncVector2Event onElementSize = new ScrollGridFuncVector2Event();
+        protected override Vector2 GetElementSizeByIndex(int index)
         {
-            throw new System.NotImplementedException();
+            if (onElementSize.IsEmpty())
+                return new Vector2(100, 100);
+            return onElementSize.Invoke(index);
         }
 
         protected override int GetElementIndexByIndex(int index)
         {
-            throw new System.NotImplementedException();
-        }
-
-        protected override void UpdateContentSize()
-        {
-            throw new System.NotImplementedException();
+            return onElementGoIndex.Invoke(index);
         }
     }
 }

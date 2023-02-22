@@ -16,14 +16,12 @@ namespace UnityEngine.UI
         /// </summary>
         public int goIndex;
         public Vector2 position = Vector2.zero;
-        public Vector2 elementSize = new Vector2(100, 100);
         public GameObject go;
         private RectTransform transform;
         public ScrollGridCell() { }
-        public ScrollGridCell(Vector2 position_, Vector2 elementSize_)
+        public ScrollGridCell(Vector2 position_)
         {
             position = position_;
-            elementSize = elementSize_;
         }
 
         public void RefreshPosition(Vector2 scrollPosition)
@@ -47,11 +45,9 @@ namespace UnityEngine.UI
             transform = null;
         }
 
-        public bool IsDisplaying(int axis, Vector2 scrollPosition, float viewlen)
+        public bool IsDisplaying(int axis, Vector2 scrollPosition, float len)
         {
             float nowPos = position[axis] + scrollPosition[axis];
-            float len = (viewlen + elementSize[axis]) / 2;
-            // Debug.Log($"ssssss{position}    {nowPos}    {viewlen}");
             if (nowPos <= len && nowPos >= -len)
                 return true;
             return false;

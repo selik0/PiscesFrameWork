@@ -16,27 +16,49 @@ namespace UnityEditor.UI
     [CustomEditor(typeof(FixedSizeScrollGrid), true)]
     public class FixedSizeScrollGridEditor : AbstractScrollGridEditor
     {
-        // SerializedProperty m_HeadPaddingProperty;
+        protected SerializedProperty m_IsAutoGroupElementCountProperty;
+        protected SerializedProperty m_MinGroupElementCountProperty;
         Object elementPrfab;
         Vector2 elementSize = new Vector2(100, 100);
         protected override void OnEnable()
         {
             base.OnEnable();
-            if (m_ElementPrefabsProperty.arraySize > 0) 
+
+            m_IsAutoGroupElementCountProperty = serializedObject.FindProperty("isAutoGroupElementCount");
+            m_MinGroupElementCountProperty = serializedObject.FindProperty("minGroupElementCount");
+
+            if (m_ElementPrefabsProperty.arraySize > 0)
                 elementPrfab = m_ElementPrefabsProperty.GetArrayElementAtIndex(0).objectReferenceValue;
 
             if (m_ElementSizesProperty.arraySize > 0)
-                elementSize = m_ElementSizesProperty.GetArrayElementAtIndex(0).vector2Value; 
-            // m_HeadPaddingProperty = serializedObject.FindProperty("headPadding");
+                elementSize = m_ElementSizesProperty.GetArrayElementAtIndex(0).vector2Value;
         }
 
         public override void OnInspectorGUI()
         {
             base.OnInspectorGUI();
             serializedObject.Update();
-            // EditorGUILayout.PropertyField(m_GroupElementCountProperty);
 
             serializedObject.ApplyModifiedProperties();
+        }
+
+        public override void DrawGroupElementCount()
+        {
+            EditorGUILayout.PropertyField(m_IsAutoGroupElementCountProperty);
+            if (EditorGUILayout.BeginFadeGroup(m_IsAutoGroupElementCountProperty.boolValue ? 0 : 1))
+            {
+                EditorGUI.indentLevel++;
+                base.DrawGroupElementCount();
+                EditorGUI.indentLevel--;
+            }
+            EditorGUILayout.EndFadeGroup();
+            if (EditorGUILayout.BeginFadeGroup(m_IsAutoGroupElementCountProperty.boolValue ? 1 : 0))
+            {
+                EditorGUI.indentLevel++;
+                EditorGUILayout.PropertyField(m_MinGroupElementCountProperty);
+                EditorGUI.indentLevel--;
+            }
+            EditorGUILayout.EndFadeGroup();
         }
 
         public override void DrawElementPrefabs()

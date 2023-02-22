@@ -12,28 +12,13 @@ namespace UnityEngine.UI
         // [Tooltip("生成的element没有超过视图显示的最大数量时居中显示")]
         // public bool isInCenterWithNonSilding;
 
-        protected override ScrollGridCell CreateCell(int index)
-        {
-            ScrollGridCell cell;
-            Vector2 position = Vector2.zero;
-            Vector2 size = GetCellSizeByIndex(index);
-            float viewHalfLen = scroll.viewport.rect.size[m_Axis] / 2;
+        [Tooltip("是否根据宽度自动适配一行或一列的Element数量")]
+        public bool isAutoGroupElementCount = false;
 
-            if (direction == Scroll.Direction.Vertical)
-            {
-                position.x = ((1 - groupElementCount) / 2f + (index % groupElementCount)) * (size.x + elementSpacing.x);
-                position.y = viewHalfLen - headPadding - size.y / 2 - (index / groupElementCount) * (size.y + elementSpacing.y);
-            }
-            else
-            {
-                position.x = -viewHalfLen + headPadding + size.x / 2 - (index / groupElementCount) * (size.x + elementSpacing.x);
-                position.y = ((1 - groupElementCount) / 2f + (index % groupElementCount)) * (size.y + elementSpacing.y);
-            }
-            cell = new ScrollGridCell(position, size);
-            return cell;
-        }
-
-        protected override Vector2 GetCellSizeByIndex(int index)
+        [Tooltip("自适应行列数量时的最小数量")]
+        [Range(1, 10)]
+        public int minGroupElementCount = 1;
+        protected override Vector2 GetElementSizeByIndex(int index)
         {
             if (elementSizes.Count > 0)
                 return elementSizes[0];
@@ -45,13 +30,20 @@ namespace UnityEngine.UI
             return 0;
         }
 
-        protected override void UpdateContentSize()
+        protected override void OnRectTransformDimensionsChange()
         {
-            Debug.Assert(elementSizes.Count > 0);
-            Vector2 contentSize = Vector2.zero;
-            Vector2 elementSize = elementSizes[0];
-            contentSize[m_Axis] = headPadding + tailPadding + (elementSize[m_Axis] + elementSpacing[m_Axis]) * Mathf.CeilToInt(m_Count / (float)groupElementCount);
-            scroll.contentSize = contentSize;
+            Debug.Assert(scroll.viewport != null);
+
+            if (Application.isPlaying && m_OldViewSize != scroll.viewport.rect.size)
+            {
+                if (isAutoGroupElementCount)
+                {
+                    int otherAxis = 1 - m_Axis;
+                    groupElementCount = Mathf.Max(minGroupElementCount, Mathf.FloorToInt(scroll.viewport.rect.size[otherAxis] / (GetElementSizeByIndex(0) + elementSpacing)[otherAxis]));
+                    UpdateCount(m_Count, true, false);
+                }
+                m_OldViewSize = scroll.viewport.rect.size;
+            }
         }
     }
 }
