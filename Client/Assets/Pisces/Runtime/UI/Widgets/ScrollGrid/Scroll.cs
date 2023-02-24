@@ -359,6 +359,23 @@ namespace UnityEngine.UI
             m_Scrolling = false;
         }
 
+        public void UpdateScrollPositionAndContentSize(Vector2 scrollPosition_, Vector2 contentSize_, bool isCall = false)
+        {
+            scrollPosition = scrollPosition_;
+            contentSize = contentSize_;
+            UpdateBounds();
+
+            if (m_ViewBounds != m_PrevViewBounds || m_ContentBounds != m_PrevContentBounds || m_ScrollPosition != m_PrevPosition)
+            {
+                if (isCall)
+                {
+                    UISystemProfilerApi.AddMarker("Scroll.value", this);
+                    m_OnValueChanged.Invoke(m_ScrollPosition, normalizedPosition);
+                }
+                UpdatePrevData();
+            }
+        }
+
         protected void UpdatePrevData()
         {
             m_PrevPosition = m_ScrollPosition;

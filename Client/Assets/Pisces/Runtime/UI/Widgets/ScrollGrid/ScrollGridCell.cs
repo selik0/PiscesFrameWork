@@ -11,17 +11,19 @@ namespace UnityEngine.UI
 {
     public class ScrollGridCell
     {
+        public int index;
         /// <summary>
         /// 当前Cell使用的Prefab的下标
         /// </summary>
         public int goIndex;
         public Vector2 position = Vector2.zero;
+        public Vector2 nowSize = Vector2.one;
         public GameObject go;
         private RectTransform transform;
         public ScrollGridCell() { }
-        public ScrollGridCell(Vector2 position_)
+        public ScrollGridCell(int index_)
         {
-            position = position_;
+            index = index_;
         }
 
         public void RefreshPosition(Vector2 scrollPosition)
@@ -45,9 +47,10 @@ namespace UnityEngine.UI
             transform = null;
         }
 
-        public bool IsDisplaying(int axis, Vector2 scrollPosition, float len)
+        public bool IsDisplaying(int axis, Vector2 scrollPosition, float viewLen)
         {
             float nowPos = position[axis] + scrollPosition[axis];
+            float len = (viewLen + nowSize[axis]) / 2;
             if (nowPos <= len && nowPos >= -len)
                 return true;
             return false;
