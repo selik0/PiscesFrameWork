@@ -13,7 +13,7 @@ using UnityEditorInternal;
 using UnityEditor.AnimatedValues;
 namespace UnityEditor.UI
 {
-    [CustomEditor(typeof(FixedSizeScrollGrid), true)]
+    [CustomEditor(typeof(AbstractFixedSizeScrollGrid), true)]
     public class FixedSizeScrollGridEditor : AbstractScrollGridEditor
     {
         protected SerializedProperty m_IsAutoGroupElementCountProperty;

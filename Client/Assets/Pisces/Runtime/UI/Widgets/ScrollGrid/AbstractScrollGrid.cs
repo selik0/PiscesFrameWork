@@ -118,12 +118,21 @@ namespace UnityEngine.UI
             if (index < 0 || index > m_Count)
                 return false;
 
-            if (m_TotalElementDict.TryGetValue(index, out cell))
+            if (GetCell(index, out cell))
                 return true;
 
             cell = new ScrollGridCell(index);
+            cell.goIndex = GetElementIndexByIndex(cell.index);
+            cell.nowSize = elementSizes[cell.goIndex];
             m_TotalElementDict.Add(index, cell);
             return true;
+        }
+
+        protected bool GetCell(int index, out ScrollGridCell cell)
+        {
+            if (m_TotalElementDict.TryGetValue(index, out cell))
+                return true;
+            return false;
         }
 
         /// <summary>
@@ -131,65 +140,10 @@ namespace UnityEngine.UI
         /// </summary>
         /// <param name="index"></param>
         /// <returns></returns>
-        protected virtual bool DisplayCell(int index)
-        {
-            ScrollGridCell cell;
-            if (!GetAndCreateCell(index, out cell))
-                return false;
+        protected abstract bool DisplayCell(int index);
 
-            // 没有拿到ElementPrefab
-            if (null == cell.go && !ElementDeCacheQueue(cell))
-                return false;
 
-            // 通过回调刷新cell的position, size
-            OnElementChange(cell);
-
-            bool isDisPlaying = cell.IsDisplaying(m_Axis, m_OldScrollPosition, scroll.viewport.rect.size[m_Axis]);
-            if (isDisPlaying)
-            {
-                if (!m_DisplayElementDict.ContainsKey(index))
-                    m_DisplayElementDict.Add(index, cell);
-                // 设置cell.go的localPosition
-
-                cell.RefreshPosition(m_OldScrollPosition);
-            }
-            else
-            {
-                ElementEnCacheQueue(cell);
-                m_DisplayElementDict.Remove(index);
-            }
-            return isDisPlaying;
-        }
-
-        protected virtual void DisplayCells(int beginIndex, bool isAdd)
-        {
-            int notDisplyCount = 0;
-            // 行列是否有元素显示
-            bool[] displayList = new bool[groupElementCount];
-            // 行列是否已显示完元素
-            bool[] notDisplyList = new bool[groupElementCount];
-            while (notDisplyCount < groupElementCount)
-            {
-                notDisplyCount = 0;
-                for (int i = 0; i < groupElementCount; i++)
-                {
-                    if (notDisplyList[i])
-                        continue;
-
-                    if (DisplayCell(beginIndex + i))
-                    {
-                        displayList[i] = true;
-                    }
-                    else if (displayList[i])
-                    {
-                        notDisplyList[i] = true;
-                        notDisplyCount++;
-                    }
-                }
-                beginIndex += isAdd ? groupElementCount : -groupElementCount;
-                Mathf.Clamp(beginIndex, 0, m_Count);
-            }
-        }
+        protected abstract void DisplayCells(int beginIndex, bool isAdd);
 
 
         /// <summary>
@@ -203,18 +157,6 @@ namespace UnityEngine.UI
 
         protected abstract void UpdateContentSize();
 
-        public void UpdateCellSize(int index, Vector2 size)
-        {
-            ScrollGridCell cell;
-            if (!GetAndCreateCell(index, out cell))
-                return;
-            if (cell.nowSize != size)
-            {
-                cell.nowSize = size;
-                UpdateCellPosition(cell);
-            }
-        }
-
         /// <summary>
         /// 根据下标获取实例化的Element
         /// </summary>
@@ -227,8 +169,6 @@ namespace UnityEngine.UI
 
             GameObject go = null;
             Queue<GameObject> queue = null;
-
-            cell.goIndex = GetElementIndexByIndex(cell.index);
 
             // 从缓存里拿
             if (m_CacheElementDict.TryGetValue(cell.goIndex, out queue) && queue.Count > 0)
@@ -287,14 +227,10 @@ namespace UnityEngine.UI
             if (isReset)
             {
                 // 先回收所有显示
-                if (m_DisplayElementDict.Count > 0)
+                foreach (var cell in m_TotalElementDict.Values)
                 {
-                    foreach (var cell in m_DisplayElementDict.Values)
-                        ElementEnCacheQueue(cell);
-
-                    m_DisplayElementDict.Clear();
+                    ElementEnCacheQueue(cell);
                 }
-                m_TotalElementDict.Clear();
             }
 
             // 数量多了则删除多余的cell数据
@@ -314,7 +250,6 @@ namespace UnityEngine.UI
             {
                 DisplayCells(m_TotalElementDict.Count, true);
             }
-            UpdateContentSize();
         }
 
         /// <summary>
@@ -331,57 +266,7 @@ namespace UnityEngine.UI
         /// </summary>
         /// <param name="scrollPosition">scroll滑动的位置</param>
         /// <param name="normalize">scroll滑动的位置归一化</param>
-        protected virtual void OnScroll(Vector2 scrollPosition, Vector2 normalize)
-        {
-            int axis = m_Axis;
-            if (normalize[axis] < 0 || normalize[axis] > 1)
-            {
-                foreach (var cell in m_DisplayElementDict.Values)
-                    cell.RefreshPosition(scrollPosition);
-                return;
-            }
-            float delta = normalize[axis] - m_OldNormalize[axis];
-
-            // 记录数据 
-            m_OldNormalize = normalize;
-            m_OldScrollPosition = scrollPosition;
-
-            int[] displayBeginList = new int[groupElementCount];
-            List<int> enqueueKeyList = new List<int>();
-            if (delta < 0)
-            {
-                for (int i = 0; i < groupElementCount; i++)
-                    displayBeginList[i] = int.MaxValue;
-            }
-
-            float viewLen = scroll.viewport.rect.size[axis];
-            foreach (var cell in m_DisplayElementDict.Values)
-            {
-                if (cell.IsDisplaying(axis, scrollPosition, viewLen))
-                {
-                    int remainder = cell.index % groupElementCount;
-                    if (delta > 0)
-                        displayBeginList[remainder] = Mathf.Max(displayBeginList[remainder], cell.index);
-                    else
-                        displayBeginList[remainder] = Mathf.Min(displayBeginList[remainder], cell.index);
-                    cell.RefreshPosition(scrollPosition);
-                }
-                else
-                {
-                    ElementEnCacheQueue(cell);
-                    enqueueKeyList.Add(cell.index);
-                }
-            }
-
-            if (enqueueKeyList.Count > 0)
-            {
-                foreach (var key in enqueueKeyList)
-                    m_DisplayElementDict.Remove(key);
-            }
-
-            int beginIndex = Mathf.Min(displayBeginList);
-            DisplayCells(beginIndex, delta > 0);
-        }
+        protected abstract void OnScroll(Vector2 scrollPosition, Vector2 normalize);
 
         protected virtual void OnElementChange(ScrollGridCell cell)
         {
@@ -393,7 +278,7 @@ namespace UnityEngine.UI
 
         public abstract void ScrollTo(int index, float time);
 
-        protected virtual IEnumerator ScrollToCor(Vector2 scrollPosition, float time)
+        protected IEnumerator ScrollToCor(Vector2 scrollPosition, float time)
         {
             float now = 0;
             Vector2 oldPos = scroll.scrollPosition;
